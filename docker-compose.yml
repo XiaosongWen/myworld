@@ -1,0 +1,65 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: myworld-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-myworld}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-myworld}
+      POSTGRES_DB: ${POSTGRES_DB:-myworld}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-myworld} -d ${POSTGRES_DB:-myworld}"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: myworld-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: myworld-backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-myworld}:${POSTGRES_PASSWORD:-myworld}@postgres:5432/${POSTGRES_DB:-myworld}
+      REDIS_URL: redis://redis:6379
+      STORAGE_PATH: /app/storage
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./myworld-storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: myworld-frontend
+    environment:
+      VITE_API_TARGET: http://backend:8000
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    restart: unless-stopped
