@@ -22,18 +22,19 @@ MyWorld is a personal life OS — an all-in-one app for habit tracking, task man
 | AI Models (local) | InsightFace, YOLOv8, CLIP, Sentence-Transformers, Ollama |
 | Containerization | Docker + Docker Compose |
 
-## Commands (Planned)
-
-Once Phase 1 is implemented:
+## Commands
 
 ```bash
-# Start all services
-docker-compose up
+# Start dev infrastructure (PostgreSQL + Redis only)
+docker compose -f docker-compose.dev.yml up -d
 
-# Backend dev
+# Start staging (all services in Docker, self-contained)
+docker compose -f docker-compose.staging.yml up -d
+
+# Backend dev (run locally, needs dev infra running)
 cd backend && uvicorn main:app --reload
 
-# Frontend dev
+# Frontend dev (run locally, needs dev infra + backend running)
 cd frontend && npm run dev
 
 # Database migrations

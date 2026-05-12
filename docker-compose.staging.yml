@@ -1,15 +1,15 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: myworld-postgres
+    container_name: myworld-staging-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-myworld}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-myworld}
       POSTGRES_DB: ${POSTGRES_DB:-myworld}
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - ./data/staging/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-myworld} -d ${POSTGRES_DB:-myworld}"]
       interval: 3s
@@ -19,11 +19,11 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: myworld-redis
+    container_name: myworld-staging-redis
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
-      - ./data/redis:/data
+      - ./data/staging/redis:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 3s
@@ -33,16 +33,15 @@ services:
 
   backend:
     build: ./backend
-    container_name: myworld-backend
+    container_name: myworld-staging-backend
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-myworld}:${POSTGRES_PASSWORD:-myworld}@postgres:5432/${POSTGRES_DB:-myworld}
       REDIS_URL: redis://redis:6379
       STORAGE_PATH: /app/storage
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
-      - ./backend:/app
-      - ./myworld-storage:/app/storage
+      - ./data/staging/storage:/app/storage
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,14 +51,11 @@ services:
 
   frontend:
     build: ./frontend
-    container_name: myworld-frontend
+    container_name: myworld-staging-frontend
     environment:
       VITE_API_TARGET: http://backend:8000
     ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - "5174:5173"
     depends_on:
       - backend
     restart: unless-stopped
