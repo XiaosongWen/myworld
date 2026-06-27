@@ -7,10 +7,10 @@
 ## Phase 1 — Foundation (Weeks 1-2)
 > Get the skeleton running end-to-end
 
-- [ ] Project setup: Docker Compose (PostgreSQL + Redis), FastAPI scaffold, React Vite scaffold
-- [ ] Alembic setup + User table & default single user
-- [ ] API health check, CORS config, user endpoint (prove UI → API → DB works)
-- [ ] Basic navigation shell in web UI (sidebar with module links)
+- [x] Project setup: Docker Compose (PostgreSQL + Redis), FastAPI scaffold, React Vite scaffold
+- [x] Alembic setup + User table & default single user
+- [x] API health check, CORS config, user endpoint (prove UI → API → DB works)
+- [x] Basic navigation shell in web UI (sidebar with module links)
 
 ---
 

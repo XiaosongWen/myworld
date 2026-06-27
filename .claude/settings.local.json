@@ -1,7 +1,26 @@
 {
   "permissions": {
     "allow": [
-      "Bash(git *)"
+      "Bash(git *)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:noodle-run.github.io)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Read(//Users/tomaswen/.claude/**)",
+      "Read(//Users/tomaswen/.claude/skills/**)",
+      "Bash(~/.antigravity/antigravity --help)",
+      "Bash(~/.antigravity/antigravity/bin/antigravity --help)",
+      "Bash(agy --help)",
+      "Bash(gh auth *)",
+      "Bash(gh repo *)",
+      "Bash(gh project *)",
+      "Bash(gh label *)",
+      "Bash(gh issue *)",
+      "Bash(gh api *)",
+      "Bash(pip install *)",
+      "Bash(pip3 install *)",
+      "Bash(npm install *)",
+      "Bash(npm test *)",
+      "Bash(.venv/bin/python -m pytest -v --tb=no)"
     ]
   }
 }
