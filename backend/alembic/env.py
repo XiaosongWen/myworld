@@ -5,7 +5,7 @@ from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
 from database import Base
-from models import User  # noqa: F401 — ensure models are registered
+from models import User, Habit  # noqa: F401 — ensure models are registered
 
 config = context.config
 if config.config_file_name is not None:
