@@ -12,8 +12,6 @@ function getIntensity(count) {
 export default function CalendarHeatmap({ data, onClickDay, year = null }) {
   const now = new Date();
   const targetYear = year ?? now.getFullYear();
-  const endDate = targetYear === now.getFullYear() ? now : new Date(targetYear, 11, 31);
-  const startDate = new Date(targetYear, 0, 1);
 
   // Build map: dateString -> count
   const countMap = useMemo(() => {
@@ -28,8 +26,9 @@ export default function CalendarHeatmap({ data, onClickDay, year = null }) {
 
   // Generate day cells
   const weeks = useMemo(() => {
+    const endDate = targetYear === now.getFullYear() ? now : new Date(targetYear, 11, 31);
+    const cursor = new Date(targetYear, 0, 1);
     const cells = [];
-    const cursor = new Date(startDate);
     // Pad to start of week (Sunday)
     const startDay = cursor.getDay();
     for (let i = 0; i < startDay; i++) {
@@ -38,7 +37,6 @@ export default function CalendarHeatmap({ data, onClickDay, year = null }) {
     while (cursor <= endDate) {
       const dateStr = cursor.toISOString().split("T")[0];
       cells.push({
-        date: new Date(cursor),
         dateStr,
         count: countMap[dateStr] || 0,
       });
@@ -54,7 +52,7 @@ export default function CalendarHeatmap({ data, onClickDay, year = null }) {
       weeks.push(cells.slice(i, i + 7));
     }
     return weeks;
-  }, [startDate, endDate, countMap]);
+  }, [targetYear, countMap, now]);
 
   return (
     <div className="heatmap">

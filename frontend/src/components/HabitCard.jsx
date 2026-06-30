@@ -18,7 +18,7 @@ export default function HabitCard({ habit, onArchive, onCheckIn, onUpdate }) {
           {habit.name}
         </span>
         {habit.category && <span className="habit-category">{habit.category}</span>}
-        <span className="habit-streak">🔥 {habit.currentStreak ?? 0}</span>
+        <span className="habit-streak">🔥 {habit.current_streak ?? 0}</span>
         <button className="btn-checkin" onClick={() => setShowModal(true)}>
           ✓ Check in
         </button>

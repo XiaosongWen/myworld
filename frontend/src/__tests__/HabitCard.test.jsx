@@ -6,7 +6,7 @@ import HabitCard from "../components/HabitCard";
 const mockHabit = {
   id: 1, name: "Morning run", color: "#3B82F6",
   category: "Health", description: "Run 5k",
-  currentStreak: 3,
+  current_streak: 3,
 };
 
 describe("HabitCard", () => {
