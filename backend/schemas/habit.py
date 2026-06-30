@@ -28,6 +28,8 @@ class HabitRead(BaseModel):
     category: str | None
     frequency: str
     is_archived: bool
+    current_streak: int = 0
+    longest_streak: int = 0
     created_at: datetime.datetime
     updated_at: datetime.datetime
 

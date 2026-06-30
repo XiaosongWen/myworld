@@ -17,9 +17,11 @@ def db_session():
 
 @pytest.mark.asyncio
 async def test_check_in_creates_log(db_session):
-    mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = None  # no existing check-in
-    db_session.execute = AsyncMock(return_value=mock_result)
+    habit_mock = MagicMock()
+    habit_mock.scalar_one_or_none.return_value = MagicMock()  # habit exists
+    dup_mock = MagicMock()
+    dup_mock.scalar_one_or_none.return_value = None  # no duplicate
+    db_session.execute = AsyncMock(side_effect=[habit_mock, dup_mock])
     db_session.add = MagicMock()
     db_session.commit = AsyncMock()
     db_session.refresh = AsyncMock()
@@ -35,12 +37,24 @@ async def test_check_in_creates_log(db_session):
 @pytest.mark.asyncio
 async def test_check_in_duplicate_raises_error(db_session):
     existing = HabitLog(id=1, habit_id=1, user_id=1, completed_at=date(2026, 6, 1))
-    mock_result = MagicMock()
-    mock_result.scalar_one_or_none.return_value = existing
-    db_session.execute = AsyncMock(return_value=mock_result)
+    habit_mock = MagicMock()
+    habit_mock.scalar_one_or_none.return_value = MagicMock()  # habit exists
+    dup_mock = MagicMock()
+    dup_mock.scalar_one_or_none.return_value = existing
+    db_session.execute = AsyncMock(side_effect=[habit_mock, dup_mock])
 
     with pytest.raises(ValueError, match="Already checked in"):
         await CheckInService.check_in(db_session, habit_id=1, user_id=1, log_date=date(2026, 6, 1), note=None)
+
+
+@pytest.mark.asyncio
+async def test_check_in_habit_not_found_raises_error(db_session):
+    habit_mock = MagicMock()
+    habit_mock.scalar_one_or_none.return_value = None  # habit not found
+    db_session.execute = AsyncMock(return_value=habit_mock)
+
+    with pytest.raises(ValueError, match="Habit 999 not found"):
+        await CheckInService.check_in(db_session, habit_id=999, user_id=1, log_date=date(2026, 6, 1), note=None)
 
 
 @pytest.mark.asyncio

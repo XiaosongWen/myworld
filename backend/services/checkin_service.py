@@ -1,9 +1,9 @@
 from datetime import date
 
-from sqlalchemy import Date, cast, func, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from models.habit import HabitLog
+from models.habit import Habit, HabitLog
 from schemas.habit import HeatmapEntry
 
 
@@ -14,6 +14,13 @@ class CheckInService:
         db: AsyncSession, habit_id: int, user_id: int,
         log_date: date, note: str | None = None,
     ) -> HabitLog:
+        # Verify habit exists
+        habit_result = await db.execute(
+            select(Habit).where(Habit.id == habit_id, Habit.is_archived == False)
+        )
+        if habit_result.scalar_one_or_none() is None:
+            raise ValueError(f"Habit {habit_id} not found")
+
         # Check for duplicate
         existing = await db.execute(
             select(HabitLog).where(

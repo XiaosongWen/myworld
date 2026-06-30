@@ -75,7 +75,15 @@
       "Bash(python -m pytest -v)",
       "Bash(npm run *)",
       "Bash(/Users/tomaswen/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/review-package d3c3c54fd1be847af3c47f96a9a34bc30bb1b299 *)",
-      "Bash(/Users/tomaswen/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/review-package e7c9b655ee10744a9bbdc186e6ebe18c7852485d *)"
+      "Bash(/Users/tomaswen/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/review-package e7c9b655ee10744a9bbdc186e6ebe18c7852485d *)",
+      "Bash(DATABASE_URL=\"postgresql+asyncpg://myworld:myworld@localhost:5432/myworld\" .venv/bin/alembic upgrade head)",
+      "Bash(DATABASE_URL=\"postgresql+asyncpg://myworld:myworld@localhost:5432/myworld\" .venv/bin/uvicorn main:app --port 8000)",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/habits -H 'Content-Type: application/json' -d '{\"name\":\"Morning run\",\"color\":\"#3B82F6\",\"category\":\"Health\"}')",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/habits -H 'Content-Type: application/json' -d '{\"name\":\"Read\",\"color\":\"#10B981\",\"category\":\"Learning\",\"description\":\"Read 30 min\"}')",
+      "Bash(curl -s http://localhost:8000/api/v1/habits)",
+      "Bash(curl -s -X POST http://localhost:8000/api/v1/habits/1/check-in -H 'Content-Type: application/json' -d '{}')",
+      "Bash(pkill -f \"uvicorn main:app\")",
+      "Bash(/Users/tomaswen/.claude/plugins/cache/claude-plugins-official/superpowers/6.0.3/skills/subagent-driven-development/scripts/review-package eaf79c6 *)"
     ]
   }
 }

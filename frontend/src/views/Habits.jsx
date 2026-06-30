@@ -46,15 +46,23 @@ export default function Habits() {
   };
 
   const handleBulkCheckIn = async (payload) => {
+    let failures = 0;
     for (const habit of habits) {
       try {
         await checkIn(habit.id, { date: payload.date || checkInDate, note: payload.note });
       } catch (e) {
-        // skip duplicates silently
+        if (e.response?.status === 409) {
+          // skip duplicates silently
+        } else {
+          failures++;
+        }
       }
     }
     setShowCheckInModal(false);
     fetchHabits();
+    if (failures > 0) {
+      alert(`${failures} check-in(s) failed. Please try again.`);
+    }
   };
 
   if (loading && habits.length === 0) return <div className="loading">Loading habits...</div>;

@@ -79,28 +79,38 @@ class TestListHabits:
 
     @pytest.mark.asyncio
     async def test_list_habits_with_data(self, client, mock_db, sample_habit_row):
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = [sample_habit_row]
-        mock_db.execute = AsyncMock(return_value=mock_result)
+        habit_result = MagicMock()
+        habit_result.scalars.return_value.all.return_value = [sample_habit_row]
+        streak_result = MagicMock()
+        streak_result.scalars.return_value.all.return_value = [
+            date(2026, 6, 1), date(2026, 6, 2), date(2026, 6, 3),
+        ]
+        mock_db.execute = AsyncMock(side_effect=[habit_result, streak_result])
 
         resp = await client.get("/api/v1/habits")
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
         assert data[0]["name"] == "Run"
+        assert data[0]["longest_streak"] == 3
+        assert data[0]["current_streak"] == 0
 
     @pytest.mark.asyncio
     async def test_list_habits_include_archived(self, client, mock_db, sample_habit_row):
         sample_habit_row.is_archived = True
-        mock_result = MagicMock()
-        mock_result.scalars.return_value.all.return_value = [sample_habit_row]
-        mock_db.execute = AsyncMock(return_value=mock_result)
+        habit_result = MagicMock()
+        habit_result.scalars.return_value.all.return_value = [sample_habit_row]
+        streak_result = MagicMock()
+        streak_result.scalars.return_value.all.return_value = []
+        mock_db.execute = AsyncMock(side_effect=[habit_result, streak_result])
 
         resp = await client.get("/api/v1/habits?include_archived=true")
         assert resp.status_code == 200
         data = resp.json()
         assert len(data) == 1
         assert data[0]["is_archived"] is True
+        assert data[0]["current_streak"] == 0
+        assert data[0]["longest_streak"] == 0
 
 
 class TestCreateHabit:
@@ -198,9 +208,11 @@ class TestArchiveHabit:
 class TestCheckIn:
     @pytest.mark.asyncio
     async def test_check_in_success(self, client, mock_db):
-        mock_find_result = MagicMock()
-        mock_find_result.scalar_one_or_none.return_value = None
-        mock_db.execute = AsyncMock(return_value=mock_find_result)
+        habit_mock = MagicMock()
+        habit_mock.scalar_one_or_none.return_value = MagicMock()  # habit exists
+        dup_mock = MagicMock()
+        dup_mock.scalar_one_or_none.return_value = None  # no duplicate
+        mock_db.execute = AsyncMock(side_effect=[habit_mock, dup_mock])
         refresh_dt = datetime(2026, 6, 15, tzinfo=timezone.utc)
         mock_db.add = MagicMock()
         mock_db.commit = AsyncMock()
@@ -214,9 +226,11 @@ class TestCheckIn:
 
     @pytest.mark.asyncio
     async def test_check_in_with_date_and_note(self, client, mock_db):
-        mock_find_result = MagicMock()
-        mock_find_result.scalar_one_or_none.return_value = None
-        mock_db.execute = AsyncMock(return_value=mock_find_result)
+        habit_mock = MagicMock()
+        habit_mock.scalar_one_or_none.return_value = MagicMock()  # habit exists
+        dup_mock = MagicMock()
+        dup_mock.scalar_one_or_none.return_value = None  # no duplicate
+        mock_db.execute = AsyncMock(side_effect=[habit_mock, dup_mock])
         refresh_dt = datetime(2026, 6, 15, tzinfo=timezone.utc)
         mock_db.add = MagicMock()
         mock_db.commit = AsyncMock()
@@ -233,9 +247,11 @@ class TestCheckIn:
 
     @pytest.mark.asyncio
     async def test_check_in_duplicate(self, client, mock_db):
-        mock_find_result = MagicMock()
-        mock_find_result.scalar_one_or_none.return_value = MagicMock(id=1)
-        mock_db.execute = AsyncMock(return_value=mock_find_result)
+        habit_mock = MagicMock()
+        habit_mock.scalar_one_or_none.return_value = MagicMock()  # habit exists
+        dup_mock = MagicMock()
+        dup_mock.scalar_one_or_none.return_value = MagicMock(id=1)  # duplicate
+        mock_db.execute = AsyncMock(side_effect=[habit_mock, dup_mock])
 
         resp = await client.post("/api/v1/habits/1/check-in", json={})
         assert resp.status_code == 409

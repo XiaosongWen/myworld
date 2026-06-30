@@ -22,7 +22,13 @@ async def list_habits(
     include_archived: bool = Query(False),
     db: AsyncSession = Depends(get_db),
 ):
-    return await HabitService.list_habits(db, USER_ID, include_archived)
+    habits = await HabitService.list_habits(db, USER_ID, include_archived)
+    # Enrich with streak data
+    for habit in habits:
+        streaks = await StreakService.get_streaks(db, habit.id, USER_ID)
+        habit.current_streak = streaks.current_streak
+        habit.longest_streak = streaks.longest_streak
+    return habits
 
 
 @router.post("/api/v1/habits", response_model=HabitRead, status_code=status.HTTP_201_CREATED)

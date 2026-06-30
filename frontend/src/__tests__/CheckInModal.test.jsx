@@ -16,7 +16,7 @@ describe("CheckInModal", () => {
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
-  it("calls onClose on overlay click", async () => {
+  it("calls onClose when Cancel is clicked", async () => {
     const onClose = vi.fn();
     render(<CheckInModal habit={{ name: "Run" }} onConfirm={vi.fn()} onClose={onClose} />);
     await userEvent.click(screen.getByText("Cancel"));
