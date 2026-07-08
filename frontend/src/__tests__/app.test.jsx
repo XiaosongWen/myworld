@@ -1,6 +1,22 @@
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { vi } from "vitest";
 import App from "../App";
+
+vi.mock("../stores/useHabitsStore", () => ({
+  default: () => ({
+    habits: [],
+    heatmapData: [],
+    loading: false,
+    error: null,
+    fetchHabits: vi.fn(),
+    createHabit: vi.fn(),
+    updateHabit: vi.fn(),
+    archiveHabit: vi.fn(),
+    checkIn: vi.fn(),
+    fetchHeatmap: vi.fn(),
+  }),
+}));
 
 describe("App routing", () => {
   it("renders Dashboard heading on the root route", () => {

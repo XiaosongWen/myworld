@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from routers.habit import router as habit_router
 from routers.health import router as health_router
 from routers.user import router as user_router
 
@@ -23,4 +24,5 @@ app.add_middleware(
 )
 
 app.include_router(health_router)
+app.include_router(habit_router)
 app.include_router(user_router)
