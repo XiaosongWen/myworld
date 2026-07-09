@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from core.logger import setup_logging
 from core.setup import AppSetup
 from routers.habit import router as habit_router
 from routers.health import router as health_router
@@ -12,7 +13,7 @@ from routers.test import router as test_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    AppSetup.setup_logging()
+    setup_logging()
     yield
 
 

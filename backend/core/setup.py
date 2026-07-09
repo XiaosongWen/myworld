@@ -5,13 +5,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from loguru import logger
 from schemas.response import ErrorResponse
 from middlewares.logging_middleware import LoggingMiddleware
-from core.logger import setup_logging
 
 class AppSetup:
-    @staticmethod
-    def setup_logging():
-        setup_logging()
-
     @staticmethod
     def init_app(app: FastAPI):
         app.add_middleware(LoggingMiddleware)
