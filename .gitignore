@@ -10,3 +10,4 @@ build/
 data/
 *.egg-info/
 *.DS_Store
+.claude/settings.local.json

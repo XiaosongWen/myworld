@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379"
     storage_path: str = "./myworld-storage"
 
-    model_config = {"env_file": "../.env", "env_file_encoding": "utf-8"}
+    model_config = {"env_file": "../.env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 settings = Settings()

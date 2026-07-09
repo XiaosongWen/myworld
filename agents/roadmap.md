@@ -17,7 +17,11 @@
 ## Phase 2 — Core Modules (Weeks 3-6)
 > Build the most useful features first
 
-- [ ] **Habit Tracker** — DB tables, CRUD API, check-in, streaks, calendar heatmap
+- [ ] **API Response Refactoring** — standardized JSON envelope (`msg`, `request_id`, `data`, `pagination`), middleware for request ID generation, unified error handling
+- [x] **Logging & Tracing** — Loguru integration, request-level logging middleware (same `request_id` as the API envelope), exception logging with full tracebacks, `X-Request-ID` response headers
+- [ ] **Backend Config Migration** — YAML configs per environment (`dev`/`staging`/`prod`), `APP_ENV`-based loading via `pydantic-settings[yaml]`, root `.env` file
+- [ ] **Deployment Docker Compose Files** — `docker-compose.stage.yml` and `docker-compose.prod.yml` with all services (PostgreSQL, Redis, backend, frontend) for one-command deployment
+- [x] **Habit Tracker** — DB tables, CRUD API, check-in, streaks, calendar heatmap
 - [ ] **Task Manager** — DB tables, CRUD API, projects, tags, kanban board, list view
 - [ ] **Dashboard** — aggregate habits + tasks data
 
