@@ -352,7 +352,8 @@ myworld-storage/
 
 ```
 myworld/
-├── docker-compose.yml              # PostgreSQL, Redis, Backend — one command start
+├── docker-compose.dev.yml          # PostgreSQL, Redis — local dev infrastructure
+├── docker-compose.staging.yml      # All services — self-contained staging environment
 ├── .env                            # Config: DB credentials, API keys, storage path
 ├── README.md
 │
@@ -360,6 +361,13 @@ myworld/
 │   ├── requirements.txt
 │   ├── main.py                     # FastAPI app entry point
 │   ├── config.py                   # Settings (from .env)
+│   ├── core/                       # Core infrastructure (logger, app setup)
+│   │   ├── __init__.py
+│   │   ├── logger.py               # Loguru logging config
+│   │   └── setup.py                # App setup (middleware, exception handlers)
+│   ├── middlewares/                 # FastAPI middlewares
+│   │   ├── __init__.py
+│   │   └── logging_middleware.py   # Request ID generation, timing, logging
 │   ├── database.py                 # SQLAlchemy engine + session
 │   ├── models/                     # SQLAlchemy ORM models
 │   │   ├── user.py
