@@ -53,7 +53,7 @@ async def test_get_current_user_returns_default_user(client, override_get_db):
     """GET /api/v1/users/me should return the default seeded user."""
     response = await client.get("/api/v1/users/me")
     assert response.status_code == 200
-    data = response.json()
+    data = response.json()["data"]
     assert data["id"] == 1
     assert data["username"] == "default"
     assert data["email"] is None
@@ -64,7 +64,7 @@ async def test_get_current_user_returns_default_user(client, override_get_db):
 async def test_get_current_user_response_shape(client, override_get_db):
     """The response should conform to the UserRead schema."""
     response = await client.get("/api/v1/users/me")
-    data = response.json()
+    data = response.json()["data"]
     assert isinstance(data["id"], int)
     assert isinstance(data["username"], str)
     assert data["email"] is None or isinstance(data["email"], str)

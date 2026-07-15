@@ -1,8 +1,10 @@
 import time
 import uuid
 from fastapi import Request
+from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from loguru import logger
+from schemas.response import ErrorResponse
 
 class LoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -25,6 +27,13 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 return response
             except Exception as e:
                 process_time = time.time() - start_time
-                # We do not handle the exception here, we just log the time it took before the failure
-                logger.error(f"Request failed | Process Time: {process_time:.4f}s")
-                raise e
+                logger.exception(f"Unhandled error during {request.method} {request.url.path} | Process Time: {process_time:.4f}s")
+                # Return the standardized error envelope directly, since
+                # BaseHTTPMiddleware can prevent FastAPI's global exception
+                # handler from catching exceptions raised inside call_next.
+                return JSONResponse(
+                    status_code=500,
+                    content=ErrorResponse(msg="server_error", request_id=request_id).model_dump(),
+                    headers={"X-Request-ID": request_id},
+                )
+
