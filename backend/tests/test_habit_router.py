@@ -75,7 +75,7 @@ class TestListHabits:
 
         resp = await client.get("/api/v1/habits")
         assert resp.status_code == 200
-        assert resp.json() == []
+        assert resp.json()["data"] == []
 
     @pytest.mark.asyncio
     async def test_list_habits_with_data(self, client, mock_db, sample_habit_row):
@@ -89,7 +89,7 @@ class TestListHabits:
 
         resp = await client.get("/api/v1/habits")
         assert resp.status_code == 200
-        data = resp.json()
+        data = resp.json()["data"]
         assert len(data) == 1
         assert data[0]["name"] == "Run"
         assert data[0]["longest_streak"] == 3
@@ -106,7 +106,7 @@ class TestListHabits:
 
         resp = await client.get("/api/v1/habits?include_archived=true")
         assert resp.status_code == 200
-        data = resp.json()
+        data = resp.json()["data"]
         assert len(data) == 1
         assert data[0]["is_archived"] is True
         assert data[0]["current_streak"] == 0
@@ -127,7 +127,7 @@ class TestCreateHabit:
             "name": "Run", "color": "#3B82F6", "category": "Health",
         })
         assert resp.status_code == 201
-        data = resp.json()
+        data = resp.json()["data"]
         assert data["name"] == "Run"
         assert data["frequency"] == "daily"
 
@@ -146,7 +146,7 @@ class TestGetHabit:
 
         resp = await client.get("/api/v1/habits/1")
         assert resp.status_code == 200
-        assert resp.json()["name"] == "Run"
+        assert resp.json()["data"]["name"] == "Run"
 
     @pytest.mark.asyncio
     async def test_get_habit_not_found(self, client, mock_db):
@@ -169,7 +169,7 @@ class TestUpdateHabit:
 
         resp = await client.patch("/api/v1/habits/1", json={"name": "Walk"})
         assert resp.status_code == 200
-        data = resp.json()
+        data = resp.json()["data"]
         # The service mutates the ORM instance and returns it; after PATCH
         # the name should reflect the update, not the original value.
         assert data["name"] == "Walk"
@@ -289,7 +289,7 @@ class TestGetCheckIns:
             "/api/v1/habits/1/check-ins?from=2026-06-01&to=2026-06-30"
         )
         assert resp.status_code == 200
-        data = resp.json()
+        data = resp.json()["data"]
         assert len(data) == 1
         assert data[0]["note"] == "Morning run"
 
@@ -303,7 +303,7 @@ class TestGetCheckIns:
             "/api/v1/habits/1/check-ins?from=2026-01-01&to=2026-01-31"
         )
         assert resp.status_code == 200
-        assert resp.json() == []
+        assert resp.json()["data"] == []
 
 
 class TestStreaks:
@@ -317,7 +317,7 @@ class TestStreaks:
 
         resp = await client.get("/api/v1/habits/1/streaks")
         assert resp.status_code == 200
-        data = resp.json()
+        data = resp.json()["data"]
         assert data["total_check_ins"] == 3
         assert data["longest_streak"] == 3
 
@@ -329,7 +329,7 @@ class TestStreaks:
 
         resp = await client.get("/api/v1/habits/1/streaks")
         assert resp.status_code == 200
-        data = resp.json()
+        data = resp.json()["data"]
         assert data["current_streak"] == 0
         assert data["longest_streak"] == 0
         assert data["total_check_ins"] == 0
@@ -349,7 +349,7 @@ class TestHeatmap:
             "/api/v1/habits/heatmap?from=2026-06-01&to=2026-06-30"
         )
         assert resp.status_code == 200
-        data = resp.json()
+        data = resp.json()["data"]
         assert len(data) == 2
         assert data[0]["count"] == 3
 
@@ -363,4 +363,4 @@ class TestHeatmap:
             "/api/v1/habits/heatmap?from=2026-06-01&to=2026-06-30"
         )
         assert resp.status_code == 200
-        assert resp.json() == []
+        assert resp.json()["data"] == []

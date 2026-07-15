@@ -19,15 +19,16 @@ async def test_success(request: Request):
     request_id = getattr(request.state, "request_id", "UNKNOWN")
     return SingleResponse(request_id=request_id, data={"message": "Success! Check logs for trace ID."})
 
-@router.post("/validation-error")
-async def test_validation_error(item: TestItem):
+@router.post("/validation-error", response_model=SingleResponse[dict])
+async def test_validation_error(request: Request, item: TestItem):
     """
     Test validation errors. 
     Send a POST request with invalid data (e.g. `value` as a string that can't be converted to int)
     to trigger the RequestValidationError handler.
     """
-    # If the user sends valid data, it passes through.
-    return {"status": "success", "item": item.model_dump()}
+    # If the user sends valid data, it passes through with the standard envelope.
+    request_id = getattr(request.state, "request_id", "UNKNOWN")
+    return SingleResponse(request_id=request_id, data=item.model_dump())
 
 @router.get("/http-error")
 async def test_http_error():

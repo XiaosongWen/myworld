@@ -8,7 +8,7 @@ async def test_health_returns_ok(client):
     """GET /api/v1/health should return {"status": "ok"}."""
     response = await client.get("/api/v1/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json()["data"] == {"status": "ok"}
 
 
 @pytest.mark.asyncio
