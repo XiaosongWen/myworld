@@ -17,7 +17,7 @@ jobs:
         env:
           POSTGRES_DB: myworld
           POSTGRES_USER: myworld
-          POSTGRES_PASSWORD: myworld_password
+          POSTGRES_PASSWORD: myworld
         ports:
           - 5432:5432
         options: >-
@@ -54,14 +54,14 @@ jobs:
 
       - name: Run Alembic Database Migrations
         env:
-          DATABASE_URL: postgresql+asyncpg://myworld:myworld_password@localhost:5432/myworld
+          DATABASE_URL: postgresql+asyncpg://myworld:myworld@localhost:5432/myworld
         run: |
           cd backend
           alembic upgrade head
 
       - name: Run Pytest Suite
         env:
-          DATABASE_URL: postgresql+asyncpg://myworld:myworld_password@localhost:5432/myworld
+          DATABASE_URL: postgresql+asyncpg://myworld:myworld@localhost:5432/myworld
           REDIS_URL: redis://localhost:6379
         run: |
           cd backend
@@ -85,7 +85,7 @@ jobs:
       - name: Install Dependencies
         run: |
           cd frontend
-          npm ci
+          npm install
 
       - name: Run Vitest Unit Tests
         run: |
