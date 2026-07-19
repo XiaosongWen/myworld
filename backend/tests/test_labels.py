@@ -35,9 +35,9 @@ async def test_attach_detach_label(db_session, test_user):
     label.id = uuid4()
     
     result = MagicMock()
-    # First call: get_label -> returns label
-    # Second call (on detach): get entity_label -> returns an entity_label mock
-    result.scalar_one_or_none.side_effect = [label, label, MagicMock()]
+    # attach: get_label → label, existence check → None (not attached)
+    # detach: get_label → label, find entity_label → entity_label mock
+    result.scalar_one_or_none.side_effect = [label, None, label, MagicMock()]
     db_session.execute.return_value = result
     
     entity_id = uuid4()

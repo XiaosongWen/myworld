@@ -43,6 +43,7 @@ def upgrade():
         sa.ForeignKeyConstraint(["label_id"], ["labels.id"], name="fk_entity_labels_label_id", ondelete="CASCADE"),
     )
     op.create_index(op.f("ix_entity_labels_entity_type_id"), "entity_labels", ["entity_type", "entity_id"])
+    op.create_index(op.f("ix_entity_labels_label_id_type"), "entity_labels", ["label_id", "entity_type"])
 
 
 def downgrade():

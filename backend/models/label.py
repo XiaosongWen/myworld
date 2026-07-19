@@ -30,6 +30,7 @@ class EntityLabel(Base):
     __tablename__ = "entity_labels"
     __table_args__ = (
         Index("ix_entity_labels_entity_type_id", "entity_type", "entity_id"),
+        Index("ix_entity_labels_label_id_type", "label_id", "entity_type"),
     )
 
     label_id: Mapped[uuid.UUID] = mapped_column(

@@ -66,18 +66,24 @@ class LabelService:
         if not label:
             return False
             
+        # Check if already attached — idempotent
+        existing = await db.execute(
+            select(EntityLabel).where(
+                EntityLabel.label_id == label_id,
+                EntityLabel.entity_type == data.entity_type,
+                EntityLabel.entity_id == data.entity_id,
+            )
+        )
+        if existing.scalar_one_or_none() is not None:
+            return True  # already attached, nothing to do
+
         entity_label = EntityLabel(
             label_id=label_id,
             entity_type=data.entity_type,
             entity_id=data.entity_id
         )
         db.add(entity_label)
-        try:
-            await db.commit()
-        except exc.IntegrityError:
-            await db.rollback()
-            # Already attached
-            pass
+        await db.commit()
         return True
         
     @staticmethod
@@ -96,5 +102,9 @@ class LabelService:
         entity_label = result.scalar_one_or_none()
         if entity_label:
             await db.delete(entity_label)
-            await db.commit()
+            try:
+                await db.commit()
+            except Exception:
+                await db.rollback()
+                raise
         return True
