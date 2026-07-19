@@ -5,8 +5,9 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from config import settings
 from database import Base
-from models import User, Habit, HabitLog  # noqa: F401 — ensure models are registered
+from models import User, Commitment, CommitmentLink, Record  # noqa: F401 — ensure models are registered
 
 config = context.config
 if config.config_file_name is not None:
@@ -14,8 +15,9 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-# Allow DATABASE_URL env var to override config file (useful for local dev)
-_database_url = os.environ.get("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+# Use the database_url from config (which automatically loads from .env or defaults to localhost)
+_database_url = settings.database_url
+
 
 
 def run_migrations_offline():
