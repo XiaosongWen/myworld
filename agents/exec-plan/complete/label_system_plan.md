@@ -17,7 +17,7 @@ We will implement the cross-cutting **Label System** defined in `agents/design-d
 Generate an alembic revision to create two tables:
 - **`labels`**:
   - `id`: UUID (Primary Key)
-  - `user_id`: UUID (Foreign Key to users)
+  - `user_id`: Integer (Foreign Key to users)
   - `name`: String(50)
   - `color`: String(7)
   - `description`: String(255) (Nullable)
