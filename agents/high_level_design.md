@@ -81,43 +81,48 @@ The home screen — aggregates data from all modules.
 
 ---
 
-### 3.2 Habit Tracker Module
+### 3.2 Pursuits Module (Commitments + Records)
+
+> A unified module that replaces separate Habit Tracker, Task Manager, and Goals with a flexible schema that can represent anything trackable.
 
 **Features:**
-- Create habits with frequency (daily, weekly, custom days)
-- Check-in / mark complete
-- Streak tracking & streak recovery
-- Habit categories & color coding
-- Calendar heatmap view (GitHub-style)
-- Statistics: completion rate, longest streak, trends
+- Everything is a **commitment** (habit, goal, task, list, or note) with type-specific behaviour
+- Daily check-in for habits with streaks and completion stats
+- Goal tracking with progress bars (percentage or checklist-based)
+- Task management with status (not_started / in_progress / done) and priority
+- Shopping lists / checklists as lightweight list-type commitments
+- Free-form daily planner entries (records can exist without a commitment)
+- Hierarchy via parent-child links (goals → sub-goals → tasks, habits linked to goals)
+- Calendar heatmap and timeline views from the same records table
+- Batch check-in for morning/evening routines
 
 **Key DB Tables:**
 ```
-habits: id, user_id, name, description, frequency, color, category, created_at
-habit_logs: id, habit_id, user_id, completed_at, note
+commitments:       id, user_id, type, title, description, status, priority, config(JSONB), sort_order, created_at
+commitment_links:  parent_id, child_id, sort_order
+records:           id, commitment_id(optional), date, content, status, value, sort_order, created_at
 ```
+
+**See:** [Full design doc](agents/design-doc/backend-01-commitments-and-records.md) for complete table definitions, API spec, and usage patterns.
 
 ---
 
-### 3.3 Task Manager Module
+### 3.3 Label System (Cross-Cutting Tagging)
+
+> A centralized GitHub-style tagging system that allows users to categorize any entity across the platform.
 
 **Features:**
-- Create tasks with title, description, due date, priority
-- Projects / folders to group tasks
-- Tags & labels
-- Subtasks (checklist within a task)
-- Kanban board view + list view
-- Recurring tasks
-- Quick capture (inbox)
+- Global labels with names, hex colors, and descriptions
+- Attached polymorphically to any entity (commitments, records, notes, photos)
+- Enables cross-module filtering and querying (e.g., view all tasks and notes tagged "Health")
 
 **Key DB Tables:**
 ```
-projects: id, user_id, name, color, icon
-tasks: id, user_id, project_id, title, description, priority, status, due_date, recurrence_rule
-subtasks: id, task_id, title, is_done, sort_order
-tags: id, user_id, name, color
-task_tags: task_id, tag_id
+labels:         id, user_id, name, color, description, created_at
+entity_labels:  label_id, entity_id, entity_type, created_at
 ```
+
+**See:** [Label System doc](agents/design-doc/backend-02-label-system.md) for details.
 
 ---
 
@@ -238,9 +243,7 @@ note_embeddings: id, note_id, chunk_index, chunk_text, embedding (vector)
 ```
 /api/v1/auth/...              # Future: login, register, token
 /api/v1/dashboard/...          # Dashboard aggregation
-/api/v1/habits/...             # CRUD + check-in
-/api/v1/tasks/...              # CRUD + status changes
-/api/v1/projects/...           # Task projects
+	/api/v1/pursuits/...           # Commitments + Records (habits, goals, tasks, lists, planner)
 /api/v1/photos/...             # Upload, list, search
 /api/v1/albums/...             # Album management
 /api/v1/videos/...             # Upload, list, stream
@@ -371,8 +374,8 @@ myworld/
 │   ├── database.py                 # SQLAlchemy engine + session
 │   ├── models/                     # SQLAlchemy ORM models
 │   │   ├── user.py
-│   │   ├── habit.py
-│   │   ├── task.py
+│   │   ├── commitment.py
+│   │   ├── record.py
 │   │   ├── photo.py
 │   │   ├── video.py
 │   │   ├── book.py
@@ -401,8 +404,8 @@ myworld/
 │       ├── components/             # Reusable UI components
 │       ├── views/                  # Page-level components
 │       │   ├── Dashboard.jsx
-│       │   ├── Habits.jsx
-│       │   ├── Tasks.jsx
+│       │   ├── Commitments.jsx
+│       │   ├── DailyLog.jsx
 │       │   ├── Photos.jsx
 │       │   ├── Videos.jsx
 │       │   ├── Books.jsx

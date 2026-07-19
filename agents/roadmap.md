@@ -15,15 +15,18 @@
 ---
 
 ## Phase 2 — Core Modules (Weeks 3-6)
-> Build the most useful features first
+> Build the unified Pursuits (Commitments + Records) core module and Dashboard, replacing separate Habit/Task/Goal modules with a flexible 3-table architecture.
 
-- [ ] **API Response Refactoring** — standardized JSON envelope (`msg`, `request_id`, `data`, `pagination`), middleware for request ID generation, unified error handling
-- [x] **Logging & Tracing** — Loguru integration, request-level logging middleware (same `request_id` as the API envelope), exception logging with full tracebacks, `X-Request-ID` response headers
-- [ ] **Backend Config Migration** — YAML configs per environment (`dev`/`staging`/`prod`), `APP_ENV`-based loading via `pydantic-settings[yaml]`, root `.env` file
-- [ ] **Deployment Docker Compose Files** — `docker-compose.stage.yml` and `docker-compose.prod.yml` with all services (PostgreSQL, Redis, backend, frontend) for one-command deployment
-- [x] **Habit Tracker** — DB tables, CRUD API, check-in, streaks, calendar heatmap
-- [ ] **Task Manager** — DB tables, CRUD API, projects, tags, kanban board, list view
-- [ ] **Dashboard** — aggregate habits + tasks data
+- [x] **Habit Tracker & Task Manager (Legacy)** — Replaced by Pursuits refactor
+- [x] **API Response Standardization** — Standardized JSON envelope
+- [x] **Logging & Tracing** — Loguru integration, request-level logging
+- [ ] **Backend Config Migration** — YAML configs per environment
+- [ ] **Deployment Compose Setup** — docker-compose stage/prod files
+- [ ] **Pursuits Core Module: Backend** — commitments, commitment_links, records CRUD & progress
+- [ ] **Pursuits Core Module: Frontend** — Unified Pursuits UI (Commitments, Detail, DailyLog)
+- [ ] **Dashboard Module** — Consolidated daily overview via Pursuits API
+- [ ] **Label System: Backend** — Cross-cutting tagging for all entities
+- [ ] **Integration: UI & API + Integration Tests** — Data binding and E2E testing
 
 ---
 
