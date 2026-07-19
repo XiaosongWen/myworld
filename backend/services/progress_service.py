@@ -1,11 +1,39 @@
+from collections import defaultdict
 from datetime import date, timedelta
 from uuid import UUID
+
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+
 from models.commitment import Commitment
 from models.commitment_link import CommitmentLink
 from models.record import Record
 from schemas.commitment import ProgressMetrics
+
+
+def _compute_streak(dates: list[date], today: date | None = None) -> int:
+    """Compute current streak of consecutive dates ending today or yesterday."""
+    if not dates:
+        return 0
+    today = today or date.today()
+
+    runs: list[list[date]] = []
+    current_run = [dates[0]]
+    for d in dates[1:]:
+        gap = (d - current_run[-1]).days
+        if gap == 1:
+            current_run.append(d)
+        elif gap > 1:  # avoid duplicates counting as breaks
+            runs.append(current_run)
+            current_run = [d]
+    runs.append(current_run)
+
+    for run in reversed(runs):
+        last = run[-1]
+        if last == today or last == today - timedelta(days=1):
+            return len(run)
+    return 0
+
 
 class ProgressService:
     @staticmethod
@@ -20,62 +48,124 @@ class ProgressService:
                 return await ProgressService._compute_percentage_progress(db, commitment)
             elif progress_type == 'auto_sub':
                 return await ProgressService._compute_auto_sub_progress(db, commitment)
-            
+
         # Default fallback
         return ProgressMetrics(method='records', done=0, total=0, percent=0)
 
+    # ── Batch progress computation ──────────────────────────────────────────
+
+    @staticmethod
+    async def compute_progress_batch(
+        db: AsyncSession, commitments: list[Commitment],
+    ) -> dict[UUID, ProgressMetrics]:
+        """Compute progress for multiple commitments with batch queries.
+
+        Returns ``{commitment_id: ProgressMetrics}`` in the same order as
+        the input so callers can iterate with ``zip()`` or look up by id.
+        """
+        if not commitments:
+            return {}
+
+        results: dict[UUID, ProgressMetrics] = {}
+
+        # Batch: habit streaks
+        habits = [c for c in commitments if c.type == 'habit']
+        if habits:
+            results.update(await ProgressService._batch_streak_progress(db, habits))
+
+        # Batch: percentage goals
+        percentage_goals = [
+            c for c in commitments
+            if c.type == 'goal' and c.config and c.config.get('progress_type') == 'percentage'
+        ]
+        if percentage_goals:
+            results.update(await ProgressService._batch_percentage_progress(db, percentage_goals))
+
+        # Fallback for the rest (checklist, auto_sub, unknown types)
+        remaining = [c for c in commitments if c.id not in results]
+        for c in remaining:
+            results[c.id] = await ProgressService.compute_progress(db, c)
+
+        return results
+
+    @staticmethod
+    async def _batch_streak_progress(
+        db: AsyncSession, habits: list[Commitment],
+    ) -> dict[UUID, ProgressMetrics]:
+        """Single-query streak computation for all habits."""
+        ids = [h.id for h in habits]
+        rows = (await db.execute(
+            select(Record.commitment_id, Record.date)
+            .where(Record.commitment_id.in_(ids), Record.status == 'done')
+            .order_by(Record.date.asc())
+        )).all()
+
+        dates_by_id: dict[UUID, list[date]] = defaultdict(list)
+        for row in rows:
+            dates_by_id[row.commitment_id].append(row.date)
+
+        today = date.today()
+        return {
+            h.id: ProgressMetrics(
+                method='streak',
+                done=(s := _compute_streak(dates_by_id.get(h.id, []), today)),
+                total=0,
+                percent=0,
+                streak=s,
+            )
+            for h in habits
+        }
+
+    @staticmethod
+    async def _batch_percentage_progress(
+        db: AsyncSession, goals: list[Commitment],
+    ) -> dict[UUID, ProgressMetrics]:
+        """Single-query percentage computation for all goals."""
+        ids = [g.id for g in goals]
+        rows = (await db.execute(
+            select(Record.commitment_id, func.sum(Record.value))
+            .where(Record.commitment_id.in_(ids), Record.status == 'done')
+            .group_by(Record.commitment_id)
+        )).all()
+
+        sums_by_id = dict(rows)
+
+        return {
+            g.id: ProgressMetrics(
+                method='percentage',
+                done=(done := float(sums_by_id.get(g.id, 0) or 0)),
+                total=(target := float(g.config.get('target_value', 100))),
+                percent=min(100.0, (done / target * 100)) if target > 0 else 0,
+            )
+            for g in goals
+        }
+
+    # ── Single-commitment progress (kept for individual lookups) ────────────
+
     @staticmethod
     async def _compute_habit_progress(db: AsyncSession, habit: Commitment) -> ProgressMetrics:
-        # compute streak
         result = await db.execute(
             select(Record.date)
-            .where(
-                Record.commitment_id == habit.id,
-                Record.status == 'done'
-            )
+            .where(Record.commitment_id == habit.id, Record.status == 'done')
             .order_by(Record.date.asc())
         )
         dates = list(result.scalars().all())
-        streak = 0
-        
-        if dates:
-            runs: list[list[date]] = []
-            current_run = [dates[0]]
-            for d in dates[1:]:
-                if (d - current_run[-1]).days == 1:
-                    current_run.append(d)
-                elif (d - current_run[-1]).days > 1: # avoid duplicates counting as breaks
-                    runs.append(current_run)
-                    current_run = [d]
-            runs.append(current_run)
-            
-            today = date.today()
-            for run in reversed(runs):
-                if run[-1] == today or run[-1] == today - timedelta(days=1):
-                    streak = len(run)
-                    break
+        streak = _compute_streak(dates)
+        return ProgressMetrics(method='streak', done=streak, total=0, percent=0, streak=streak)
 
-        return ProgressMetrics(
-            method='streak',
-            done=streak,
-            total=0,
-            percent=0,
-            streak=streak
-        )
-        
     @staticmethod
     async def _compute_checklist_progress(db: AsyncSession, goal: Commitment) -> ProgressMetrics:
         subquery = select(CommitmentLink.child_id).where(CommitmentLink.parent_id == goal.id)
         children = (await db.execute(select(Commitment).where(Commitment.id.in_(subquery)))).scalars().all()
-        
+
         total = len(children)
         if total == 0:
             return ProgressMetrics(method='checklist', done=0, total=0, percent=0)
-            
+
         done = sum(1 for c in children if c.status == 'completed')
         percent = (done / total) * 100
         return ProgressMetrics(method='checklist', done=done, total=total, percent=percent)
-        
+
     @staticmethod
     async def _compute_percentage_progress(db: AsyncSession, goal: Commitment) -> ProgressMetrics:
         target = float(goal.config.get('target_value', 100)) if goal.config else 100
@@ -92,14 +182,14 @@ class ProgressService:
         # Simplistic approach: average percent of children
         subquery = select(CommitmentLink.child_id).where(CommitmentLink.parent_id == goal.id)
         children = (await db.execute(select(Commitment).where(Commitment.id.in_(subquery)))).scalars().all()
-        
+
         if not children:
             return ProgressMetrics(method='auto_sub', done=0, total=0, percent=0)
-            
+
         total_percent = 0
         for child in children:
             child_prog = await ProgressService.compute_progress(db, child)
             total_percent += child_prog.percent
-            
+
         avg_percent = total_percent / len(children)
         return ProgressMetrics(method='auto_sub', done=0, total=0, percent=avg_percent)

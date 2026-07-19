@@ -1,4 +1,5 @@
 from typing import Generic, TypeVar
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -27,3 +28,8 @@ class ListResponse(BaseModel, Generic[T]):
 class ErrorResponse(BaseModel):
     msg: str
     request_id: str
+
+
+class ReorderItem(BaseModel):
+    id: UUID
+    sort_order: int

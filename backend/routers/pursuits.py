@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import date
 from uuid import UUID
 
@@ -6,9 +7,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from database import get_db
 from schemas.commitment import CommitmentCreate, CommitmentUpdate, CommitmentRead
-from schemas.record import RecordCreate, RecordUpdate, RecordRead, RecordBatchCreate
+from schemas.record import RecordCreate, RecordUpdate, RecordRead, RecordBatchCreate, HeatmapEntry
 from schemas.daily import DailyResponse, DailyHabitCheckin
-from schemas.response import SingleResponse, ListResponse, Pagination
+from schemas.response import SingleResponse, ListResponse, Pagination, ReorderItem
 from services.commitment_service import CommitmentService
 from services.record_service import RecordService
 from services.progress_service import ProgressService
@@ -22,14 +23,32 @@ async def list_commitments(
     request: Request,
     type: str | None = Query(None),
     status: str | None = Query(None),
+    priority: str | None = Query(None),
     parent_id: UUID | None = Query(None),
     root: bool = Query(False),
+    date: date | None = Query(None),
+    due_date_from: date | None = Query(None),
+    due_date_to: date | None = Query(None),
+    q: str | None = Query(None),
     db: AsyncSession = Depends(get_db)
 ):
-    commitments = await CommitmentService.list_commitments(db, USER_ID, type_=type, status=status, parent_id=parent_id, root=root)
-    # Calculate progress for each
-    for c in commitments:
-        c.progress = await ProgressService.compute_progress(db, c)
+    commitments = await CommitmentService.list_commitments(
+        db, USER_ID,
+        type_=type,
+        status=status,
+        priority=priority,
+        parent_id=parent_id,
+        root=root,
+        record_date=date,
+        due_date_from=due_date_from,
+        due_date_to=due_date_to,
+        q=q,
+    )
+    # Batch-calculate progress (1-2 queries instead of N)
+    if commitments:
+        progress_map = await ProgressService.compute_progress_batch(db, commitments)
+        for c in commitments:
+            c.progress = progress_map.get(c.id)
     
     request_id = getattr(request.state, "request_id", "UNKNOWN")
     pagination = Pagination(page=1, page_size=len(commitments), total_rows=len(commitments))
@@ -45,6 +64,14 @@ async def create_commitment(
     commitment.progress = await ProgressService.compute_progress(db, commitment)
     request_id = getattr(request.state, "request_id", "UNKNOWN")
     return SingleResponse(request_id=request_id, data=commitment)
+
+@router.put("/api/v1/pursuits/commitments/reorder", status_code=status.HTTP_204_NO_CONTENT)
+async def reorder_commitments(
+    data: list[ReorderItem],
+    db: AsyncSession = Depends(get_db),
+):
+    items = [(item.id, item.sort_order) for item in data]
+    await CommitmentService.reorder_commitments(db, items, USER_ID)
 
 @router.get("/api/v1/pursuits/commitments/{commitment_id}", response_model=SingleResponse[CommitmentRead])
 async def get_commitment(
@@ -102,7 +129,10 @@ async def create_record(
     data: RecordCreate,
     db: AsyncSession = Depends(get_db)
 ):
-    record = await RecordService.create_record(db, data)
+    try:
+        record = await RecordService.create_record(db, data)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     request_id = getattr(request.state, "request_id", "UNKNOWN")
     return SingleResponse(request_id=request_id, data=record)
 
@@ -112,10 +142,21 @@ async def batch_create_records(
     data: RecordBatchCreate,
     db: AsyncSession = Depends(get_db)
 ):
-    records = await RecordService.batch_create_records(db, data.records)
+    try:
+        records = await RecordService.batch_create_records(db, data.records)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(e))
     request_id = getattr(request.state, "request_id", "UNKNOWN")
     pagination = Pagination(page=1, page_size=len(records), total_rows=len(records))
     return ListResponse(request_id=request_id, data=records, pagination=pagination)
+
+@router.put("/api/v1/pursuits/records/reorder", status_code=status.HTTP_204_NO_CONTENT)
+async def reorder_records(
+    data: list[ReorderItem],
+    db: AsyncSession = Depends(get_db),
+):
+    items = [(item.id, item.sort_order) for item in data]
+    await RecordService.reorder_records(db, items)
 
 @router.get("/api/v1/pursuits/records/{record_id}", response_model=SingleResponse[RecordRead])
 async def get_record(
@@ -151,30 +192,61 @@ async def delete_record(
     if not ok:
         raise HTTPException(status_code=404, detail="Record not found")
 
+@router.get("/api/v1/pursuits/heatmap", response_model=ListResponse[HeatmapEntry])
+async def get_heatmap(
+    request: Request,
+    date_from: date = Query(alias="from"),
+    date_to: date = Query(alias="to"),
+    db: AsyncSession = Depends(get_db),
+):
+    entries = await RecordService.get_heatmap(db, USER_ID, date_from, date_to)
+    request_id = getattr(request.state, "request_id", "UNKNOWN")
+    pagination = Pagination(page=1, page_size=len(entries), total_rows=len(entries))
+    return ListResponse(request_id=request_id, data=entries, pagination=pagination)
+
 @router.get("/api/v1/pursuits/daily/{target_date}", response_model=SingleResponse[DailyResponse])
 async def get_daily(
     request: Request,
     target_date: date,
     db: AsyncSession = Depends(get_db)
 ):
-    # 1. Active habits and today's record
+    # 1. Active habits
     habits = await CommitmentService.list_commitments(db, USER_ID, type_="habit", status="active")
-    daily_habits = []
+
+    # 2. Batch compute progress for all habits (1-2 queries vs N)
+    if habits:
+        habit_progress = await ProgressService.compute_progress_batch(db, habits)
+    else:
+        habit_progress = {}
+
+    # 3. Single query for ALL today's records (replaces N per-habit queries + free-records query)
+    all_today_records = await RecordService.get_records(db, date_from=target_date, date_to=target_date)
+
+    # Group records by commitment_id (None = free-form)
+    records_by_commitment: dict[UUID | None, list] = defaultdict(list)
+    for r in all_today_records:
+        records_by_commitment[r.commitment_id].append(r)
+
+    daily_habits = [
+        DailyHabitCheckin(
+            commitment=h,
+            today_record=(recs := records_by_commitment.get(h.id))[0] if recs else None,
+        )
+        for h in habits
+    ]
     for h in habits:
-        h.progress = await ProgressService.compute_progress(db, h)
-        records = await RecordService.get_records(db, commitment_id=h.id, date_from=target_date, date_to=target_date)
-        today_record = records[0] if records else None
-        daily_habits.append(DailyHabitCheckin(commitment=h, today_record=today_record))
-        
-    # 2. Today's tasks
+        h.progress = habit_progress.get(h.id)
+
+    # 4. Today's tasks
     tasks = await CommitmentService.list_commitments(db, USER_ID, type_="task")
     daily_tasks = [t for t in tasks if t.due_date == target_date]
-    for t in daily_tasks:
-        t.progress = await ProgressService.compute_progress(db, t)
-        
-    # 3. Free records (records without commitment_id)
-    all_today_records = await RecordService.get_records(db, date_from=target_date, date_to=target_date)
-    free_records = [r for r in all_today_records if r.commitment_id is None]
+    if daily_tasks:
+        task_progress = await ProgressService.compute_progress_batch(db, daily_tasks)
+        for t in daily_tasks:
+            t.progress = task_progress.get(t.id)
+
+    # 5. Free records (without commitment_id) — already loaded in step 3
+    free_records = records_by_commitment.get(None, [])
     
     response_data = DailyResponse(
         date=target_date,

@@ -37,3 +37,8 @@ class RecordRead(RecordBase):
 
 class RecordBatchCreate(BaseModel):
     records: List[RecordCreate]
+
+
+class HeatmapEntry(BaseModel):
+    date: date
+    count: int
