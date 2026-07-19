@@ -200,18 +200,19 @@ DELETE /api/v1/pursuits/commitments/:id         — Delete
 
 ```jsonc
 "progress": {
-  "method": "auto_sub" | "records" | "checklist",
+  "method": "streak" | "percentage" | "auto_sub" | "checklist" | "records",
   "done": 32,
   "total": 100,
   "percent": 32,
-  "streak": 21 // Automatically computed for habits based on consecutive done records
+  "streak": 21 // Habit streak via consecutive done records going backward from today/yesterday.
 }
 ```
 
-- **auto_sub:** Sum of children's progress (goal with sub-goals)
-- **records:** Count of `done` records divided by target (habit monthly %)
-- **checklist:** Children with `status = completed` / total children
-- **streak:** Specifically for habits; backend computes this by traversing consecutive `done` records backward from today/yesterday.
+- **streak:** For habits; backend computes this by traversing consecutive `done` records backward from today/yesterday.
+- **percentage:** For goals with `progress_type: "percentage"` — `done` = sum of record values, `total` = target_value.
+- **auto_sub:** Average percent of children (goal with sub-goals).
+- **checklist:** Children with `status = completed` / total children.
+- **records:** Default fallback — zero progress.
 
 ### 4.3 Records
 
@@ -237,9 +238,11 @@ DELETE /api/v1/pursuits/records/:id            — Delete
 
 ```
 GET /api/v1/pursuits/daily/:date
-``` 
+GET /api/v1/pursuits/heatmap?from=:date&to=:date
+```
 
-Returns a consolidated daily view: all active habits with today's check-in status, today's tasks, goal progress overview, and free records for that date.
+- **Daily:** Returns a consolidated daily view: all active habits with today's check-in status, today's tasks, goal progress overview, and free records for that date.
+- **Heatmap:** Returns date-count pairs for records with `status: done` across all the user's commitments in the given date range.
 
 ---
 
@@ -290,7 +293,7 @@ Returns a consolidated daily view: all active habits with today's check-in statu
 
 Records are inherently date-keyed, which makes calendar visualization natural:
 
-- **Habit heatmap:** For a given habit, count records with `status: done` per day
+- **Habit heatmap:** For a given habit, count records with `status: done` per day. Exposed via `GET /api/v1/pursuits/heatmap?from=&to=`.
 - **Combined dashboard calendar:** For each day, show habit dots (done habits / total) + task chips
 - **Goal timeline:** When were records created? Show progress over time
 
