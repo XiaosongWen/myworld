@@ -1,0 +1,2519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyWorld - Dashboard & Pursuits</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root, [data-theme="cursor"] {
+            /* Default Cursor Palette */
+            --bg: #f2f1ed;
+            --surface: #e6e5e0;
+            --surface-hover: #ebeae5;
+            --surface-raised: #ffffff;
+            --fg: #26251e;
+            --fg-muted: #6b6b6b;
+            --border: #cf2d56;
+            --border-light: #e6e5e0;
+            
+            --accent: #f54e00;
+            --accent-glow: rgba(245, 78, 0, 0.2);
+            --success: #1f8a65;
+            --success-glow: rgba(31, 138, 101, 0.15);
+            --warning: #f2a600;
+            --danger: #cf2d56;
+            
+            --priority-high: #cf2d56;
+            --priority-med: #f2a600;
+            --priority-low: #6b6b6b;
+
+            --radius-lg: 24px;
+            --radius-md: 16px;
+            --radius-sm: 8px;
+            
+            --font-main: 'Inter', -apple-system, sans-serif;
+            --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-smooth: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="nord"] {
+            --bg: #eceff4;
+            --surface: #e5e9f0;
+            --surface-hover: #d8dee9;
+            --surface-raised: #ffffff;
+            --fg: #2e3440;
+            --fg-muted: #4c566a;
+            --border: #81a1c1;
+            --border-light: #d8dee9;
+            --accent: #5e81ac;
+            --accent-glow: rgba(94, 129, 172, 0.2);
+            --success: #a3be8c;
+            --success-glow: rgba(163, 190, 140, 0.15);
+            --warning: #ebcb8b;
+            --danger: #bf616a;
+        }
+
+        [data-theme="sepia"] {
+            --bg: #faf0e6;
+            --surface: #f5e6d0;
+            --surface-hover: #efe0c8;
+            --surface-raised: #ffffff;
+            --fg: #5c4033;
+            --fg-muted: #8b6b5d;
+            --border: #d4c4a8;
+            --border-light: #efe0c8;
+            --accent: #c44536;
+            --accent-glow: rgba(196, 69, 54, 0.2);
+            --success: #606c38;
+            --success-glow: rgba(96, 108, 56, 0.15);
+            --warning: #e09f3e;
+            --danger: #9e2a2b;
+        }
+
+        [data-theme="ocean"] {
+            --bg: #f0f6fc;
+            --surface: #e3edf7;
+            --surface-hover: #d6e4f0;
+            --surface-raised: #ffffff;
+            --fg: #0c1a2b;
+            --fg-muted: #3a4b5c;
+            --border: #93b4d3;
+            --border-light: #d6e4f0;
+            --accent: #2563eb;
+            --accent-glow: rgba(37, 99, 235, 0.2);
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.15);
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        [data-theme="forest"] {
+            --bg: #f4f7f2;
+            --surface: #e8efe4;
+            --surface-hover: #dce6d6;
+            --surface-raised: #ffffff;
+            --fg: #1a2e1a;
+            --fg-muted: #4a5e4a;
+            --border: #95b889;
+            --border-light: #dce6d6;
+            --accent: #2d6a4f;
+            --accent-glow: rgba(45, 106, 79, 0.2);
+            --success: #40916c;
+            --success-glow: rgba(64, 145, 108, 0.15);
+            --warning: #f4a261;
+            --danger: #e07a5f;
+        }
+
+        .theme-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .theme-dot:hover {
+            transform: scale(1.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: var(--font-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- Typography --- */
+        h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; }
+        h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; color: var(--fg); margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; }
+        .text-muted { color: var(--fg-muted); }
+        .text-sm { font-size: 13px; }
+        .text-xs { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* --- Sidebar --- */
+        .sidebar {
+            width: 260px;
+            background-color: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+            z-index: 10;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+
+        .sidebar.collapsed {
+            width: 76px;
+            padding: 24px 12px;
+        }
+
+        .sidebar.collapsed .brand-text,
+        .sidebar.collapsed .nav-text {
+            display: none;
+        }
+
+        .sidebar.collapsed .brand {
+            justify-content: center;
+            padding: 0;
+        }
+
+        .sidebar.collapsed .brand > div {
+            display: none; /* Hide logo when collapsed to make room for toggle */
+        }
+        
+        .sidebar.collapsed .sidebar-toggle {
+            transform: rotate(180deg);
+            margin: 0 auto;
+        }
+        
+        .sidebar.collapsed .nav-item {
+            justify-content: center;
+            padding: 10px;
+        }
+        
+        .sidebar.collapsed .theme-dots {
+            justify-content: center;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 12px;
+        }
+
+        .brand-text-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-section {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            color: var(--fg-muted);
+            font-weight: 500;
+            white-space: nowrap;
+            transition: var(--transition-fast);
+        }
+
+        .nav-item:hover {
+            background-color: var(--surface-hover);
+            color: var(--fg);
+        }
+
+        .nav-item.active {
+            background-color: var(--accent-glow);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        /* --- Main Content --- */
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 48px 0 48px;
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .search-bar {
+            display: flex;
+            align-items: center;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 8px 16px;
+            width: 360px;
+            gap: 12px;
+            color: var(--fg-muted);
+            transition: var(--transition-fast);
+        }
+
+        .search-bar:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px rgba(9, 138, 188, 0.2);
+        }
+
+        .search-bar input {
+            border: none;
+            background: transparent;
+            width: 100%;
+            color: var(--fg);
+            outline: none;
+            font-family: inherit;
+            font-size: 14px;
+        }
+        
+        .search-bar input::placeholder {
+            color: var(--fg-muted);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-profile img {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: var(--transition-fast);
+        }
+        
+        .user-profile img:hover {
+            border-color: var(--accent);
+        }
+
+        .view {
+            display: none;
+            padding: 32px 48px;
+            animation: fadeIn var(--transition-smooth);
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Header --- */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 32px;
+        }
+
+        .date-selector {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .icon-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--fg);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .icon-btn:hover {
+            background: var(--surface-hover);
+            border-color: var(--border-light);
+            transform: scale(1.05);
+        }
+
+        .pill-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--fg);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+        
+        .pill-btn:hover {
+            background: var(--surface-hover);
+        }
+
+        /* --- Flip Clock --- */
+        .flip-clock-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        .flip-clock {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .flip-panel {
+            background: linear-gradient(to bottom, #f9f9f9 50%, #e6e6e6 50%);
+            border-radius: 8px;
+            color: #111;
+            font-size: 56px;
+            font-weight: 800;
+            padding: 8px 12px;
+            position: relative;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,1);
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-variant-numeric: tabular-nums;
+            font-family: 'Inter', -apple-system, sans-serif;
+            min-width: 64px;
+        }
+        .flip-panel::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 2px;
+            background: rgba(0,0,0,0.15);
+            transform: translateY(-50%);
+        }
+        .flip-colon {
+            font-size: 40px;
+            font-weight: 800;
+            color: var(--fg);
+            margin: 0 4px;
+            transform: translateY(-4px);
+        }
+
+        /* --- Dashboard Grid --- */
+        .month-glance {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            margin-bottom: 32px;
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .month-header-wrapper {
+            grid-column: span 7;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .weekday-header {
+            font-size: 12px;
+            color: var(--fg-muted);
+            text-align: center;
+            font-weight: 500;
+            padding-bottom: 8px;
+        }
+
+        .day-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            min-height: 80px;
+            padding: 8px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            background: var(--bg);
+        }
+        
+        .day-cell.empty {
+            opacity: 0.4;
+            background: transparent;
+            border-color: transparent;
+        }
+
+        .day-cell.active {
+            border-color: var(--accent);
+            background: var(--surface-hover);
+        }
+
+        .day-number {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--fg);
+        }
+
+        .day-cell.empty .day-number {
+            color: var(--fg-muted);
+        }
+        
+        .day-cell.active .day-number {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .habit-dots {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 4px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--border-light);
+        }
+
+        .dot.done { background: var(--success); }
+
+        .day-event {
+            font-size: 11px;
+            background: var(--surface-raised);
+            padding: 6px 8px;
+            border-radius: 6px;
+            color: var(--fg-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .day-event.highlight {
+            border-left: 2px solid var(--accent);
+            color: var(--fg);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+        }
+
+        /* --- Cards & Panels --- */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 24px;
+            margin-bottom: 24px;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+        }
+        
+        #dashboard .dashboard-grid .card {
+            box-shadow: 0 4px 24px rgba(0,0,0,0.02);
+            height: 280px; /* Balance dashboard columns */
+        }
+        
+        #dashboard .dashboard-grid .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.06);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+            opacity: 0;
+            transition: opacity var(--transition-smooth);
+        }
+        
+        .card:hover::before { opacity: 1; }
+        
+        /* Make inner lists scrollable */
+        .task-list, .log-list, .habit-list, .goal-list {
+            overflow-y: auto;
+            flex: 1;
+            padding-right: 4px;
+        }
+        
+        /* Custom scrollbar for inner lists */
+        .task-list::-webkit-scrollbar, .log-list::-webkit-scrollbar, .habit-list::-webkit-scrollbar, .goal-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .task-list::-webkit-scrollbar-track, .log-list::-webkit-scrollbar-track, .habit-list::-webkit-scrollbar-track, .goal-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .task-list::-webkit-scrollbar-thumb, .log-list::-webkit-scrollbar-thumb, .habit-list::-webkit-scrollbar-thumb, .goal-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+        .task-list::-webkit-scrollbar-thumb:hover, .log-list::-webkit-scrollbar-thumb:hover, .habit-list::-webkit-scrollbar-thumb:hover, .goal-list::-webkit-scrollbar-thumb:hover {
+            background: var(--fg-muted);
+        }
+
+        /* Habits List */
+        .habit-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+            transition: var(--transition-fast);
+        }
+        .habit-item:last-child { border-bottom: none; padding-bottom: 0; }
+
+        .habit-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-light);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .checkbox:hover { border-color: var(--fg-muted); }
+        .checkbox.checked {
+            background: var(--success);
+            border-color: var(--success);
+            transform: scale(1.05);
+            box-shadow: 0 0 12px var(--success-glow);
+        }
+        .checkbox.checked::after {
+            content: '✓';
+            color: #000;
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+        .streak-badge {
+            font-size: 12px;
+            color: var(--warning);
+            background: rgba(255, 159, 10, 0.1);
+            padding: 2px 8px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Daily Log */
+        .log-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .log-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 14px;
+        }
+
+        .log-time {
+            font-family: monospace;
+            color: var(--fg-muted);
+            background: var(--surface-raised);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .log-link {
+            font-size: 12px;
+            color: var(--accent);
+            text-decoration: none;
+            margin-left: auto;
+            opacity: 0.8;
+        }
+        .log-link:hover { opacity: 1; text-decoration: underline; }
+
+        .input-bar {
+            display: flex;
+            align-items: center;
+            background: var(--surface-raised);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            gap: 8px;
+        }
+
+        .input-bar input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--fg);
+            font-size: 14px;
+            outline: none;
+        }
+
+        /* Tasks List */
+        .task-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .task-item:last-child { border-bottom: none; }
+
+        .task-status {
+            cursor: pointer;
+            font-size: 16px;
+            opacity: 0.7;
+        }
+        .task-status:hover { opacity: 1; }
+
+        .priority-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .priority-dot.high { background: var(--danger); }
+        .priority-dot.med { background: var(--warning); }
+        .priority-dot.low { background: var(--fg-muted); }
+
+        .task-date {
+            margin-left: auto;
+            font-size: 12px;
+            color: var(--fg-muted);
+        }
+
+        /* Goals Progress */
+        .goal-item {
+            margin-bottom: 16px;
+        }
+        .goal-item:last-child { margin-bottom: 0; }
+
+        .goal-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .progress-track {
+            height: 8px;
+            background: var(--surface-raised);
+            border-radius: 4px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s ease-out;
+        }
+        
+        .progress-fill.green { background: var(--success); }
+        .progress-fill.orange { background: var(--warning); }
+        .progress-fill.blue { background: var(--accent); }
+
+        /* --- Pursuits Toolbar --- */
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+        }
+
+        .filters {
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: none;
+            color: var(--fg-muted);
+            padding: 6px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition-fast);
+        }
+
+        .filter-btn:hover { color: var(--fg); background: var(--surface-raised); }
+        .filter-btn.active { background: var(--fg); color: var(--bg); }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition-fast);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+            box-shadow: 0 0 16px var(--accent-glow);
+        }
+
+        .tag {
+            font-size: 10px;
+            padding: 2px 8px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+        
+        .tag.purple { color: #7c3aed; background-color: rgba(124, 58, 237, 0.1); border-color: rgba(124, 58, 237, 0.3); }
+        .tag.orange { color: #ea580c; background-color: rgba(234, 88, 12, 0.1); border-color: rgba(234, 88, 12, 0.3); }
+        .tag.blue { color: #2563eb; background-color: rgba(37, 99, 235, 0.1); border-color: rgba(37, 99, 235, 0.3); }
+        .tag.green { color: #059669; background-color: rgba(5, 150, 105, 0.1); border-color: rgba(5, 150, 105, 0.3); }
+        .tag.pink { color: #db2777; background-color: rgba(219, 39, 119, 0.1); border-color: rgba(219, 39, 119, 0.3); }
+
+        /* Inline Calendar */
+        .inline-calendar {
+            display: grid;
+            grid-template-rows: repeat(7, 6px);
+            grid-auto-flow: column;
+            gap: 1.5px;
+            margin-left: 16px;
+        }
+
+        .inline-cal-cell {
+            width: 6px;
+            height: 6px;
+            border-radius: 1.5px;
+            background-color: var(--border);
+            opacity: 0.2;
+        }
+
+        .inline-cal-cell.done {
+            background-color: var(--success);
+            opacity: 0.5;
+        }
+
+        .inline-cal-cell.done.level-4 {
+            opacity: 1;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--fg-muted);
+            border-radius: var(--radius-sm);
+            padding: 4px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-fast);
+        }
+
+        .icon-btn:hover {
+            color: var(--fg);
+            background: var(--surface-raised);
+        }
+
+        /* Pursuits List Section */
+        .section-header {
+            margin-top: 32px;
+            margin-bottom: 16px;
+            color: var(--fg-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .section-header::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-text-wrapper">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="-webkit-text-fill-color: initial; color: var(--fg);"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path><path d="M2 12h20"></path></svg>
+                <span class="brand-text">MyWorld</span>
+            </div>
+            <button class="icon-btn sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('collapsed')" style="transition: transform 0.3s; width: 32px; height: 32px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"></path></svg>
+            </button>
+        </div>
+        
+        <div class="nav-section">
+            <div class="text-xs text-muted nav-text" style="padding: 0 12px; margin-bottom: 8px;">Mission Control</div>
+            <div class="nav-item active" onclick="switchTab('dashboard')">
+                <span>📅</span> <span class="nav-text">Dashboard</span>
+            </div>
+            <div class="nav-item" onclick="switchTab('pursuits')">
+                <span>🎯</span> <span class="nav-text">Pursuits</span>
+            </div>
+            <div class="nav-item">
+                <span>🧠</span> <span class="nav-text">Knowledge</span>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="text-xs text-muted nav-text" style="padding: 0 12px; margin-bottom: 8px;">Media</div>
+            <div class="nav-item"><span>📷</span> <span class="nav-text">Photos</span></div>
+            <div class="nav-item"><span>🎬</span> <span class="nav-text">Videos</span></div>
+            <div class="nav-item"><span>📚</span> <span class="nav-text">Books</span></div>
+        </div>
+        
+        <div class="nav-section" style="margin-top: auto;">
+            <div class="text-xs text-muted nav-text" style="padding: 0 12px; margin-bottom: 8px;">Theme</div>
+            <div class="theme-dots" style="display: flex; gap: 8px; padding: 0 12px; flex-wrap: wrap;">
+                <div class="theme-dot" style="background: #f2f1ed; border: 1px solid #cf2d56;" onclick="setTheme('cursor')" title="Cursor"></div>
+                <div class="theme-dot" style="background: #eceff4; border: 1px solid #81a1c1;" onclick="setTheme('nord')" title="Nord"></div>
+                <div class="theme-dot" style="background: #faf0e6; border: 1px solid #d4c4a8;" onclick="setTheme('sepia')" title="Sepia"></div>
+                <div class="theme-dot" style="background: #f0f6fc; border: 1px solid #93b4d3;" onclick="setTheme('ocean')" title="Ocean"></div>
+                <div class="theme-dot" style="background: #f4f7f2; border: 1px solid #95b889;" onclick="setTheme('forest')" title="Forest"></div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-container">
+        
+        <!-- Global App Header -->
+        <header class="app-header">
+            <div class="search-bar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" placeholder="Search commitments, logs, or type a command... (Cmd+K)">
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" title="Notifications">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                </button>
+                <div class="user-profile">
+                    <img src="https://ui-avatars.com/api/?name=Tomas+W&background=0D8ABC&color=fff&rounded=true" alt="User Profile">
+                </div>
+            </div>
+        </header>
+        
+        <!-- DASHBOARD VIEW -->
+        <section id="dashboard" class="view active">
+            
+            <header class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px;">
+                <div style="display: flex; align-items: center; gap: 24px;">
+                    <div class="flip-clock-container">
+                        <div style="display: flex; align-items: flex-end; gap: 12px;">
+                            <div class="flip-clock">
+                                <div class="flip-panel"><span>09</span></div>
+                                <span class="flip-colon">:</span>
+                                <div class="flip-panel"><span>41</span></div>
+                                <span class="flip-colon">:</span>
+                                <div class="flip-panel"><span>12</span></div>
+                            </div>
+                            <span style="font-size: 16px; font-weight: 700; color: var(--fg); padding-bottom: 8px;">CDT</span>
+                        </div>
+                        <div style="font-size: 16px; font-weight: 600; color: var(--fg);">Wednesday | July 15, 2026</div>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 12px; align-items: flex-end;">
+                    <!-- Next 5 Days Weather (Top Row) -->
+                    <div style="display: flex; align-items: center; gap: 16px; background: var(--surface); padding: 8px 20px; border-radius: var(--radius-lg); box-shadow: 0 2px 12px rgba(0,0,0,0.02);">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                            <span style="font-size: 11px; font-weight: 600; color: var(--fg);">Today</span>
+                            <span style="font-size: 16px;">⛅</span>
+                            <span style="font-size: 12px; font-weight: 600; color: var(--fg);">72°</span>
+                        </div>
+                        <div style="width: 1px; height: 24px; background: var(--border);"></div>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                            <span style="font-size: 11px; font-weight: 600; color: var(--fg-muted);">Thu</span>
+                            <span style="font-size: 16px;">☀️</span>
+                            <span style="font-size: 12px; font-weight: 600; color: var(--fg);">78°</span>
+                        </div>
+                        <div style="width: 1px; height: 24px; background: var(--border);"></div>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                            <span style="font-size: 11px; font-weight: 600; color: var(--fg-muted);">Fri</span>
+                            <span style="font-size: 16px;">🌧️</span>
+                            <span style="font-size: 12px; font-weight: 600; color: var(--fg);">68°</span>
+                        </div>
+                        <div style="width: 1px; height: 24px; background: var(--border);"></div>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                            <span style="font-size: 11px; font-weight: 600; color: var(--fg-muted);">Sat</span>
+                            <span style="font-size: 16px;">⛅</span>
+                            <span style="font-size: 12px; font-weight: 600; color: var(--fg);">74°</span>
+                        </div>
+                        <div style="width: 1px; height: 24px; background: var(--border);"></div>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 2px;">
+                            <span style="font-size: 11px; font-weight: 600; color: var(--fg-muted);">Sun</span>
+                            <span style="font-size: 16px;">☀️</span>
+                            <span style="font-size: 12px; font-weight: 600; color: var(--fg);">80°</span>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar (Bottom Row) -->
+                    <div style="display: flex; gap: 16px; background: var(--surface); padding: 12px 20px; border-radius: var(--radius-lg); box-shadow: 0 2px 12px rgba(0,0,0,0.02); width: 100%; box-sizing: border-box;">
+                        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600;">
+                                <span style="color: var(--fg-muted);">Month</span>
+                                <span style="color: var(--fg);">48%</span>
+                            </div>
+                            <div style="height: 4px; background: var(--border); border-radius: 2px; overflow: hidden;">
+                                <div style="height: 100%; width: 48%; background: var(--accent); border-radius: 2px;"></div>
+                            </div>
+                        </div>
+                        <div style="width: 1px; background: var(--border);"></div>
+                        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600;">
+                                <span style="color: var(--fg-muted);">Quarter</span>
+                                <span style="color: var(--fg);">16%</span>
+                            </div>
+                            <div style="height: 4px; background: var(--border); border-radius: 2px; overflow: hidden;">
+                                <div style="height: 100%; width: 16%; background: var(--warning); border-radius: 2px;"></div>
+                            </div>
+                        </div>
+                        <div style="width: 1px; background: var(--border);"></div>
+                        <div style="display: flex; flex-direction: column; gap: 6px; flex: 1;">
+                            <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: 600;">
+                                <span style="color: var(--fg-muted);">Year</span>
+                                <span style="color: var(--fg);">54%</span>
+                            </div>
+                            <div style="height: 4px; background: var(--border); border-radius: 2px; overflow: hidden;">
+                                <div style="height: 100%; width: 54%; background: var(--success); border-radius: 2px;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+<div class="dashboard-grid">
+                <!-- Left Column -->
+                <div class="col-left">
+                    <!-- Today's Tasks -->
+                    <div class="card">
+                        <h2>📋 Today's Tasks <a href="#" class="text-sm text-muted" style="text-decoration:none; font-weight:normal;">View All →</a></h2>
+                        <div class="task-list">
+                            <div class="task-item">
+                                <span class="task-status" onclick="toggleTaskStatus(this)">🔄</span>
+                                <div style="flex: 1; display:flex; align-items:center; gap:8px;">
+                                    <span>Design mobile UI screens</span>
+                                    <span class="tag purple">Project X</span>
+                                </div>
+                                <div class="priority-dot med" title="Medium Priority"></div>
+                                <span class="task-date">Jul 15</span>
+                                <button class="icon-btn" title="Edit" style="margin-left: 8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                            </div>
+                            <div class="task-item">
+                                <span class="task-status" onclick="toggleTaskStatus(this)">☐</span>
+                                <div style="flex: 1; display:flex; align-items:center; gap:8px;">
+                                    <span>Buy groceries</span>
+                                    <span class="tag orange">Errands</span>
+                                </div>
+                                <div class="priority-dot low" title="Low Priority"></div>
+                                <span class="task-date">Jul 15</span>
+                                <button class="icon-btn" title="Edit" style="margin-left: 8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                            </div>
+                            <div class="task-item" style="opacity: 0.5;">
+                                <span class="task-status" onclick="toggleTaskStatus(this)">✓</span>
+                                <div style="flex: 1; display:flex; align-items:center; gap:8px; text-decoration: line-through;">
+                                    <span>Setup Docker</span>
+                                    <span class="tag blue">Tech</span>
+                                </div>
+                                <span class="task-date">Done</span>
+                                <button class="icon-btn" title="Edit" style="margin-left: 8px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Daily Log -->
+                    <div class="card">
+                        <h2>📝 Daily Log</h2>
+                        <div class="log-list">
+                            <div class="log-item">
+                                <span class="log-time">09:00</span>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span>Met with team about Q3 roadmap</span>
+                                    <span class="tag purple">Work</span>
+                                </div>
+                            </div>
+                            <div class="log-item">
+                                <span class="log-time">14:30</span>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span>Bought groceries</span>
+                                    <span class="tag orange">Errands</span>
+                                </div>
+                            </div>
+                            <div class="log-item">
+                                <span class="log-time">16:30</span>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span>Finished Ch.3 "Atomic Habits"</span>
+                                    <span class="tag blue">Growth</span>
+                                </div>
+                                <a href="#" class="log-link">→ 🎯 Read 100 books</a>
+                            </div>
+                        </div>
+                        <div class="input-bar">
+                            <span style="opacity: 0.5;">📝</span>
+                            <input type="text" placeholder="+ Add what you did today (type @ to link)...">
+                            <button class="icon-btn" style="width:24px;height:24px;font-size:16px;">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="col-right">
+                    <!-- Habits -->
+                    <div class="card">
+                        <h2>🔄 Habits <span class="streak-badge">🔥 21d • 3w streak</span></h2>
+                        <div class="habit-list">
+                            <div class="habit-item">
+                                <div class="habit-left">
+                                    <div class="checkbox checked" onclick="this.classList.toggle('checked')"></div>
+                                    <span>Morning Meditation</span>
+                                    <span class="tag green">Wellness</span>
+                                </div>
+                                <span class="text-xs text-muted">14 days</span>
+                            </div>
+                            <div class="habit-item">
+                                <div class="habit-left">
+                                    <div class="checkbox" onclick="this.classList.toggle('checked')"></div>
+                                    <span>Exercise (30m)</span>
+                                    <span class="tag green">Health</span>
+                                </div>
+                                <span class="text-xs text-muted">5 days</span>
+                            </div>
+                            <div class="habit-item">
+                                <div class="habit-left">
+                                    <div class="checkbox" onclick="this.classList.toggle('checked')"></div>
+                                    <span>Read 30 Pages</span>
+                                    <span class="tag blue">Growth</span>
+                                </div>
+                                <span class="text-xs text-muted">3 days</span>
+                            </div>
+                            <div class="habit-item">
+                                <div class="habit-left">
+                                    <div class="checkbox" onclick="this.classList.toggle('checked')"></div>
+                                    <span>Deep Work (2 hrs)</span>
+                                    <span class="tag purple">Work</span>
+                                </div>
+                                <span class="text-xs text-muted">1 day</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Goal Progress -->
+                    <div class="card">
+                        <h2>🎯 Goal Progress</h2>
+                        <div class="goal-list">
+                            <div class="goal-item">
+                                <div class="goal-header">
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span>Read 100 books</span>
+                                        <span class="tag blue">Growth</span>
+                                    </div>
+                                    <span class="text-muted">32% <span style="color:var(--success);">▲+1</span></span>
+                                </div>
+                                <div class="progress-track">
+                                    <div class="progress-fill blue" style="width: 32%;"></div>
+                                </div>
+                                <div class="text-xs text-muted" style="margin-top:6px;">Aug 15</div>
+                            </div>
+                            
+                            <div class="goal-item">
+                                <div class="goal-header">
+                                    <div style="display:flex; align-items:center; gap:8px;">
+                                        <span>Lose 20 lbs</span>
+                                        <span class="tag green">Health</span>
+                                    </div>
+                                    <span class="text-muted">15%</span>
+                                </div>
+                                <div class="progress-track">
+                                    <div class="progress-fill orange" style="width: 15%;"></div>
+                                </div>
+                                <div class="text-xs text-muted" style="margin-top:6px;">Sep 1</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Month at a Glance -->
+            <div class="month-glance">
+                <div class="month-header-wrapper">
+                    <h2 style="font-size: 18px; font-weight: 600; margin: 0; color: var(--fg);">July 2026</h2>
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <button class="icon-btn" style="width: 28px; height: 28px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"></path></svg></button>
+                        <button style="background: var(--surface-raised); border: 1px solid var(--border); color: var(--fg); padding: 4px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--surface-hover)'" onmouseout="this.style.background='var(--surface-raised)'">Today</button>
+                        <button class="icon-btn" style="width: 28px; height: 28px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"></path></svg></button>
+                    </div>
+                </div>
+
+                <!-- Weekday Headers -->
+                <div class="weekday-header">Sun</div>
+                <div class="weekday-header">Mon</div>
+                <div class="weekday-header">Tue</div>
+                <div class="weekday-header">Wed</div>
+                <div class="weekday-header">Thu</div>
+                <div class="weekday-header">Fri</div>
+                <div class="weekday-header">Sat</div>
+
+                <!-- Days -->
+                <div class="day-cell empty"><span class="day-number">28</span></div>
+                <div class="day-cell empty"><span class="day-number">29</span></div>
+                <div class="day-cell empty"><span class="day-number">30</span></div>
+                
+                <!-- Week 1 -->
+                <div class="day-cell">
+                    <span class="day-number">1</span>
+                    <div class="habit-dots"><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div></div>
+                </div>
+                <div class="day-cell">
+                    <span class="day-number">2</span>
+                    <div class="habit-dots"><div class="dot done"></div><div class="dot done"></div></div>
+                </div>
+                <div class="day-cell">
+                    <span class="day-number">3</span>
+                    <div class="habit-dots"><div class="dot done"></div><div class="dot"></div></div>
+                </div>
+                <div class="day-cell">
+                    <span class="day-number">4</span>
+                    <div class="day-event">🎆 Holiday</div>
+                </div>
+
+                <!-- Week 2 -->
+                <div class="day-cell">
+                    <span class="day-number">5</span>
+                </div>
+                <div class="day-cell">
+                    <span class="day-number">6</span>
+                    <div class="habit-dots"><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div></div>
+                </div>
+                <div class="day-cell">
+                    <span class="day-number">7</span>
+                    <div class="habit-dots"><div class="dot done"></div><div class="dot done"></div></div>
+                </div>
+                <div class="day-cell">
+                    <span class="day-number">8</span>
+                    <div class="habit-dots"><div class="dot done"></div><div class="dot done"></div></div>
+                </div>
+                <div class="day-cell">
+                    <span class="day-number">9</span>
+                    <div class="habit-dots"><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div></div>
+                </div>
+                <div class="day-cell">
+                    <span class="day-number">10</span>
+                    <div class="habit-dots"><div class="dot done"></div></div>
+                    <div class="day-event">📅 Project due</div>
+                </div>
+                <div class="day-cell">
+                    <span class="day-number">11</span>
+                </div>
+
+                <!-- Week 3 (Current week in prototype) -->
+                <div class="day-cell">
+                    <span class="day-number">12</span>
+                </div>
+                <div class="day-cell">
+                    <span class="day-number">13</span>
+                    <div class="habit-dots"><div class="dot done"></div><div class="dot done"></div></div>
+                    <div class="day-event">🕐 10:00 Sync</div>
+                </div>
+                <div class="day-cell">
+                    <span class="day-number">14</span>
+                    <div class="habit-dots"><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div></div>
+                </div>
+                <div class="day-cell active">
+                    <span class="day-number">15</span>
+                    <div class="habit-dots"><div class="dot done"></div><div class="dot"></div></div>
+                    <div class="day-event highlight">📅 Design UI</div>
+                    <div class="day-event highlight">🕐 14:00 Review</div>
+                </div>
+                <div class="day-cell">
+                    <span class="day-number">16</span>
+                    <div class="habit-dots"><div class="dot"></div></div>
+                    <div class="day-event">🕐 14:00 Dentist</div>
+                </div>
+                <div class="day-cell">
+                    <span class="day-number">17</span>
+                    <div class="habit-dots"><div class="dot"></div></div>
+                </div>
+                <div class="day-cell">
+                    <span class="day-number">18</span>
+                    <div class="habit-dots"><div class="dot"></div></div>
+                </div>
+
+                <!-- Week 4 -->
+                <div class="day-cell"><span class="day-number">19</span></div>
+                <div class="day-cell"><span class="day-number">20</span></div>
+                <div class="day-cell"><span class="day-number">21</span></div>
+                <div class="day-cell"><span class="day-number">22</span></div>
+                <div class="day-cell"><span class="day-number">23</span></div>
+                <div class="day-cell"><span class="day-number">24</span></div>
+                <div class="day-cell"><span class="day-number">25</span></div>
+
+                <!-- Week 5 -->
+                <div class="day-cell"><span class="day-number">26</span></div>
+                <div class="day-cell"><span class="day-number">27</span></div>
+                <div class="day-cell"><span class="day-number">28</span></div>
+                <div class="day-cell"><span class="day-number">29</span></div>
+                <div class="day-cell"><span class="day-number">30</span></div>
+                <div class="day-cell"><span class="day-number">31</span></div>
+                
+                <div class="day-cell empty"><span class="day-number">1</span></div>
+            </div>
+
+                    </section>
+
+        <!-- PURSUITS VIEW -->
+        <section id="pursuits" class="view">
+            <header class="page-header">
+                <h1>Pursuits</h1>
+            </header>
+
+            <div class="toolbar">
+                <div class="filters">
+                    <button class="filter-btn active" onclick="switchFilter(this)">All</button>
+                    <button class="filter-btn" onclick="switchFilter(this)">Habits</button>
+                    <button class="filter-btn" onclick="switchFilter(this)">Goals</button>
+                    <button class="filter-btn" onclick="switchFilter(this)">Tasks</button>
+                    <button class="filter-btn" onclick="switchFilter(this)">Lists</button>
+                </div>
+                <div style="display:flex; gap:12px;">
+                    <div class="input-bar" style="background:var(--bg);">
+                        <span>🔍</span>
+                        <input type="text" placeholder="Search commitments..." style="width:150px;">
+                    </div>
+                    <button class="btn-primary" onclick="window.openCreateModal()">
+                        + New ▾
+                    </button>
+                </div>
+            </div>
+
+            <div class="pursuits-content">
+                <div id="pu-all" class="pu-section">
+                    <div class="section-header">All Commitments Overview</div>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px;">
+                        <!-- Compact Habits -->
+                        <div class="card" style="padding: 20px; cursor: pointer; transition: transform 0.2s; border: 1px solid var(--border);" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--fg-muted)';" onmouseout="this.style.transform='none'; this.style.borderColor='var(--border)';" onclick="switchFilter(document.querySelectorAll('.filter-btn')[1])">
+                            <h3 style="font-size: 14px; margin: 0 0 16px 0; display:flex; justify-content:space-between; align-items:center;">
+                                <span>🔄 Habits</span>
+                                <span class="text-xs text-muted" style="background:var(--surface-raised); padding:2px 8px; border-radius:12px;">4 Active</span>
+                            </h3>
+                            <div style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
+                                <div style="display:flex; justify-content:space-between;"><span>Meditation</span><span class="text-muted">🔥 14d • 2w</span></div>
+                                <div style="display:flex; justify-content:space-between;"><span>Read 30 Pages</span><span class="text-muted">🔥 21d • 4w</span></div>
+                                <div style="display:flex; justify-content:space-between;"><span>Exercise (3x/week)</span><span class="text-muted">🔥 5d • 12w</span></div>
+                                <div style="display:flex; justify-content:space-between;"><span>Deep Work (2 hrs)</span><span class="text-muted">🔥 1d • 1w</span></div>
+                            </div>
+                        </div>
+                        <!-- Compact Goals -->
+                        <div class="card" style="padding: 20px; cursor: pointer; transition: transform 0.2s; border: 1px solid var(--border);" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--fg-muted)';" onmouseout="this.style.transform='none'; this.style.borderColor='var(--border)';" onclick="switchFilter(document.querySelectorAll('.filter-btn')[2])">
+                            <h3 style="font-size: 14px; margin: 0 0 16px 0; display:flex; justify-content:space-between; align-items:center;">
+                                <span>🎯 Goals</span>
+                                <span class="text-xs text-muted" style="background:var(--surface-raised); padding:2px 8px; border-radius:12px;">3 Active</span>
+                            </h3>
+                            <div style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
+                                <div style="display:flex; justify-content:space-between;"><span>Read 100 books</span><span class="text-muted" style="color:var(--success);">32%</span></div>
+                                <div style="display:flex; justify-content:space-between;"><span>Lose 20 lbs</span><span class="text-muted" style="color:var(--orange);">15%</span></div>
+                                <div style="display:flex; justify-content:space-between;"><span>Launch Startup</span><span class="text-muted" style="color:var(--success);">60%</span></div>
+                            </div>
+                        </div>
+                        <!-- Compact Tasks -->
+                        <div class="card" style="padding: 20px; cursor: pointer; transition: transform 0.2s; border: 1px solid var(--border);" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--fg-muted)';" onmouseout="this.style.transform='none'; this.style.borderColor='var(--border)';" onclick="switchFilter(document.querySelectorAll('.filter-btn')[3])">
+                            <h3 style="font-size: 14px; margin: 0 0 16px 0; display:flex; justify-content:space-between; align-items:center;">
+                                <span>📋 Tasks</span>
+                                <span class="text-xs text-muted" style="background:var(--surface-raised); padding:2px 8px; border-radius:12px;">14 Active</span>
+                            </h3>
+                            <div style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
+                                <div style="display:flex; justify-content:space-between;"><span>Call dentist</span><span class="text-muted">Inbox</span></div>
+                                <div style="display:flex; justify-content:space-between;"><span>Design mobile UI screens</span><span class="text-muted">Today</span></div>
+                                <div style="display:flex; justify-content:space-between;"><span>Renew passport</span><span class="text-muted">Upcoming</span></div>
+                                <div style="text-align:center; padding-top:4px; opacity:0.5;">+ 11 more</div>
+                            </div>
+                        </div>
+                        <!-- Compact Lists -->
+                        <div class="card" style="padding: 20px; cursor: pointer; transition: transform 0.2s; border: 1px solid var(--border);" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--fg-muted)';" onmouseout="this.style.transform='none'; this.style.borderColor='var(--border)';" onclick="switchFilter(document.querySelectorAll('.filter-btn')[4])">
+                            <h3 style="font-size: 14px; margin: 0 0 16px 0; display:flex; justify-content:space-between; align-items:center;">
+                                <span>📝 Lists</span>
+                                <span class="text-xs text-muted" style="background:var(--surface-raised); padding:2px 8px; border-radius:12px;">3 Active</span>
+                            </h3>
+                            <div style="display:flex; flex-direction:column; gap:12px; font-size:13px;">
+                                <div style="display:flex; justify-content:space-between;"><span>Reading List</span><span class="text-muted">12 items</span></div>
+                                <div style="display:flex; justify-content:space-between;"><span>Groceries</span><span class="text-muted">5 items</span></div>
+                                <div style="display:flex; justify-content:space-between;"><span>Japan Trip</span><span class="text-muted">24 items</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pu-habits" class="pu-section" style="display: none;">
+                    <div class="section-header">Habits (4 Active)</div>
+                    <div class="card" style="padding: 0;">
+                        <div class="habit-item" style="padding: 16px 24px;">
+                            <div class="habit-left">
+                                <div class="checkbox checked" onclick="this.classList.toggle('checked')"></div>
+                                <span style="font-weight: 500;">Meditation</span>
+                            </div>
+                            <div style="flex: 1; margin-left: 24px; display: flex; gap: 6px; align-items: center;">
+                                <span class="tag purple">Mindfulness</span>
+                                <span class="tag orange">Morning</span>
+                            </div>
+                            <div style="display:flex; gap: 24px; align-items:center;">
+                                <div class="inline-calendar" id="inline-cal-meditation"></div>
+                                <span class="streak-badge">🔥 14d • 2w streak</span>
+                                <span class="text-sm text-muted">85%</span>
+                                <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                            </div>
+                        </div>
+                        <div class="habit-item" style="padding: 16px 24px;">
+                            <div class="habit-left">
+                                <div class="checkbox" onclick="this.classList.toggle('checked')"></div>
+                                <span style="font-weight: 500;">Read 30 Pages</span>
+                            </div>
+                            <div style="flex: 1; margin-left: 24px; display: flex; gap: 6px; align-items: center;">
+                                <span class="tag blue">Learning</span>
+                            </div>
+                            <div style="display:flex; gap: 24px; align-items:center;">
+                                <div class="inline-calendar" id="inline-cal-read"></div>
+                                <span class="streak-badge">🔥 21d • 4w streak</span>
+                                <span class="text-sm text-muted">90%</span>
+                                <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                            </div>
+                        </div>
+                        <div class="habit-item extra-habit" style="padding: 16px 24px; display: none;">
+                            <div class="habit-left">
+                                <div class="checkbox" onclick="this.classList.toggle('checked')"></div>
+                                <span style="font-weight: 500;">Exercise (30m)</span>
+                            </div>
+                            <div style="flex: 1; margin-left: 24px; display: flex; gap: 6px; align-items: center;">
+                                <span class="tag green">Health</span>
+                            </div>
+                            <div style="display:flex; gap: 24px; align-items:center;">
+                                <div class="inline-calendar" id="inline-cal-exercise"></div>
+                                <span class="streak-badge">🔥 5d • 12w streak</span>
+                                <span class="text-sm text-muted">75%</span>
+                                <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                            </div>
+                        </div>
+                        <div class="habit-item extra-habit" style="padding: 16px 24px; display: none;">
+                            <div class="habit-left">
+                                <div class="checkbox" onclick="this.classList.toggle('checked')"></div>
+                                <span style="font-weight: 500;">Deep Work (2 hrs)</span>
+                            </div>
+                            <div style="flex: 1; margin-left: 24px; display: flex; gap: 6px; align-items: center;">
+                                <span class="tag pink">Career</span>
+                                <span class="tag purple">Focus</span>
+                            </div>
+                            <div style="display:flex; gap: 24px; align-items:center;">
+                                <div class="inline-calendar" id="inline-cal-deepwork"></div>
+                                <span class="streak-badge">🔥 1d • 1w streak</span>
+                                <span class="text-sm text-muted">40%</span>
+                                <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="pu-habits-link" style="text-align:center; margin-bottom: 32px;"><a href="#" class="log-link" onclick="switchFilter(document.querySelectorAll('.filter-btn')[1]); return false;">View all 4 habits →</a></div>
+                </div>
+
+                <div id="pu-goals" class="pu-section" style="display: none;">
+                    <div class="section-header">Goals (3 Active)</div>
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <div class="goal-header">
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 600; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    🎯 Read 100 books
+                                    <span class="tag blue">Learning</span>
+                                </h3>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="text-muted">32%</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                            </div>
+                            <div class="progress-track" style="margin-bottom: 12px;">
+                                <div class="progress-fill blue" style="width: 32%;"></div>
+                            </div>
+                            <div class="text-sm text-muted" style="margin-bottom: 16px;">Due: Aug 15, 2026</div>
+                            <div class="sub-tasks">
+                                <div style="display:flex; gap:8px; font-size: 13px; color:var(--fg); margin-bottom:8px; align-items:center;">
+                                    <div class="checkbox checked" style="width:14px;height:14px;min-width:14px;" onclick="this.classList.toggle('checked')"></div>
+                                    <span style="text-decoration:line-through; opacity:0.6; flex:1;">Read 30 books (Q1)</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display:flex; gap:8px; font-size: 13px; color:var(--fg); margin-bottom:8px; align-items:center;">
+                                    <div class="checkbox" style="width:14px;height:14px;min-width:14px;" onclick="this.classList.toggle('checked')"></div>
+                                    <span style="flex:1;">Read 30 books (Q2)</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display:flex; gap:8px; font-size: 13px; color:var(--fg); margin-bottom:8px; align-items:center;">
+                                    <div class="checkbox" style="width:14px;height:14px;min-width:14px;" onclick="this.classList.toggle('checked')"></div>
+                                    <span style="flex:1;">Read 40 books (Q3/Q4)</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display: flex; gap: 8px; align-items:center; margin-top: 8px; opacity: 0.6;">
+                                    <span style="font-size: 16px; width: 14px; text-align: center; font-weight: 500;">+</span>
+                                    <input type="text" placeholder="Add sub-goal..." style="border:none; background:transparent; font-size:13px; outline:none; color:var(--fg); width:100%; cursor:text; padding:0;" onclick="event.stopPropagation();">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="goal-header">
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 600; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    🎯 Lose 20 lbs
+                                    <span class="tag green">Health</span>
+                                </h3>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="text-muted">15%</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                            </div>
+                            <div class="progress-track" style="margin-bottom: 12px;">
+                                <div class="progress-fill orange" style="width: 15%;"></div>
+                            </div>
+                            <div class="text-sm text-muted" style="margin-bottom: 16px;">Due: Sep 1, 2026</div>
+                            <div class="sub-tasks">
+                                <div style="display:flex; gap:8px; font-size: 13px; color:var(--fg); margin-bottom:8px; align-items:center;">
+                                    <div class="checkbox checked" style="width:14px;height:14px;min-width:14px;" onclick="this.classList.toggle('checked')"></div>
+                                    <span style="text-decoration:line-through; opacity:0.6; flex:1;">Lose 5 lbs (Month 1)</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display:flex; gap:8px; font-size: 13px; color:var(--fg); margin-bottom:8px; align-items:center;">
+                                    <div class="checkbox" style="width:14px;height:14px;min-width:14px;" onclick="this.classList.toggle('checked')"></div>
+                                    <span style="flex:1;">Lose 5 lbs (Month 2)</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display:flex; gap:8px; font-size: 13px; color:var(--fg); margin-bottom:8px; align-items:center;">
+                                    <div class="checkbox" style="width:14px;height:14px;min-width:14px;" onclick="this.classList.toggle('checked')"></div>
+                                    <span style="flex:1;">Lose 10 lbs (Month 3 & 4)</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display: flex; gap: 8px; align-items:center; margin-top: 8px; opacity: 0.6;">
+                                    <span style="font-size: 16px; width: 14px; text-align: center; font-weight: 500;">+</span>
+                                    <input type="text" placeholder="Add sub-goal..." style="border:none; background:transparent; font-size:13px; outline:none; color:var(--fg); width:100%; cursor:text; padding:0;" onclick="event.stopPropagation();">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card">
+                            <div class="goal-header">
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 600; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    🎯 Launch Startup
+                                    <span class="tag pink">Career</span>
+                                </h3>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="text-muted">60%</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                            </div>
+                            <div class="progress-track" style="margin-bottom: 12px;">
+                                <div class="progress-fill green" style="width: 60%; background-color: var(--success);"></div>
+                            </div>
+                            <div class="text-sm text-muted" style="margin-bottom: 16px;">Due: Dec 31, 2026</div>
+                            <div class="sub-tasks">
+                                <div style="display:flex; gap:8px; font-size: 13px; color:var(--fg); margin-bottom:8px; align-items:center;">
+                                    <div class="checkbox checked" style="width:14px;height:14px;min-width:14px;" onclick="this.classList.toggle('checked')"></div>
+                                    <span style="text-decoration:line-through; opacity:0.6; flex:1;">Finish MVP</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display:flex; gap:8px; font-size: 13px; color:var(--fg); margin-bottom:8px; align-items:center;">
+                                    <div class="checkbox checked" style="width:14px;height:14px;min-width:14px;" onclick="this.classList.toggle('checked')"></div>
+                                    <span style="text-decoration:line-through; opacity:0.6; flex:1;">Get 10 Beta Users</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display:flex; gap:8px; font-size: 13px; color:var(--fg); margin-bottom:8px; align-items:center;">
+                                    <div class="checkbox" style="width:14px;height:14px;min-width:14px;" onclick="this.classList.toggle('checked')"></div>
+                                    <span style="flex:1;">Public Launch</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display: flex; gap: 8px; align-items:center; margin-top: 8px; opacity: 0.6;">
+                                    <span style="font-size: 16px; width: 14px; text-align: center; font-weight: 500;">+</span>
+                                    <input type="text" placeholder="Add sub-goal..." style="border:none; background:transparent; font-size:13px; outline:none; color:var(--fg); width:100%; cursor:text; padding:0;" onclick="event.stopPropagation();">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pu-tasks" class="pu-section" style="display:none;">
+                    <div class="section-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        Tasks (14 Active)
+                        <div style="font-size: 12px; display:flex; gap: 12px; font-weight: 500; color: var(--fg-muted);">
+                            <div style="display:flex; align-items:center; gap:6px;"><div class="priority-dot high"></div> High Priority</div>
+                            <div style="display:flex; align-items:center; gap:6px;"><div class="priority-dot med"></div> Medium Priority</div>
+                            <div style="display:flex; align-items:center; gap:6px;"><div class="priority-dot low"></div> Low Priority</div>
+                        </div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px;">
+                        <!-- Inbox / Unsorted -->
+                        <div class="card">
+                            <h2 style="font-size:16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between;">
+                                <span style="display:flex;align-items:center;gap:8px;">📥 Inbox</span>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="text-xs text-muted" style="background:var(--surface-raised); padding:2px 8px; border-radius:12px;">3 items</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                            </h2>
+                            <div class="task-list">
+                                <div class="task-item">
+                                    <span class="task-status" onclick="toggleTaskStatus(this)">☐</span>
+                                    <div style="flex: 1; display:flex; align-items:center; gap:8px;">
+                                        <span>Call dentist</span>
+                                        <span class="tag pink">Health</span>
+                                    </div>
+                                    <div class="priority-dot high" title="High Priority"></div>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div class="task-item">
+                                    <span class="task-status" onclick="toggleTaskStatus(this)">☐</span>
+                                    <div style="flex: 1; display:flex; align-items:center; gap:8px;">
+                                        <span>Reply to Sarah's email</span>
+                                        <span class="tag blue">Work</span>
+                                    </div>
+                                    <div class="priority-dot low" title="Low Priority"></div>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div class="task-item">
+                                    <span class="task-status" onclick="toggleTaskStatus(this)">☐</span>
+                                    <div style="flex: 1; display:flex; align-items:center; gap:8px;">
+                                        <span>Book car maintenance</span>
+                                        <span class="tag orange">Errands</span>
+                                    </div>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div class="input-bar" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display:flex; align-items:center; gap:8px;">
+                                    <span style="opacity: 0.5;">+</span>
+                                    <input type="text" placeholder="Quick add..." style="border:none;background:transparent;width:100%;outline:none;font-size:14px;color:var(--fg);">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Today -->
+                        <div class="card">
+                            <h2 style="font-size:16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between;">
+                                <span style="display:flex;align-items:center;gap:8px;">☀️ Today</span>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="text-xs text-muted" style="background:var(--surface-raised); padding:2px 8px; border-radius:12px;">2 items</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                            </h2>
+                            <div class="task-list">
+                                <div class="task-item">
+                                    <span class="task-status" onclick="toggleTaskStatus(this)">🔄</span>
+                                    <div style="flex: 1; display:flex; align-items:center; gap:8px;">
+                                        <span>Design mobile UI screens</span>
+                                        <span class="tag purple">Project X</span>
+                                    </div>
+                                    <div class="priority-dot med" title="Medium Priority"></div>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div class="task-item">
+                                    <span class="task-status" onclick="toggleTaskStatus(this)">☐</span>
+                                    <div style="flex: 1; display:flex; align-items:center; gap:8px;">
+                                        <span>Buy groceries</span>
+                                        <span class="tag orange">Errands</span>
+                                    </div>
+                                    <div class="priority-dot low" title="Low Priority"></div>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div class="task-item" style="opacity: 0.5;">
+                                    <span class="task-status" onclick="toggleTaskStatus(this)">✓</span>
+                                    <div style="flex: 1; display:flex; align-items:center; gap:8px; text-decoration: line-through;">
+                                        <span>Setup Docker</span>
+                                        <span class="tag blue">Tech</span>
+                                    </div>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div class="input-bar" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display:flex; align-items:center; gap:8px;">
+                                    <span style="opacity: 0.5;">+</span>
+                                    <input type="text" placeholder="Quick add..." style="border:none;background:transparent;width:100%;outline:none;font-size:14px;color:var(--fg);">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Upcoming -->
+                        <div class="card">
+                            <h2 style="font-size:16px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between;">
+                                <span style="display:flex;align-items:center;gap:8px;">📅 Upcoming</span>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="text-xs text-muted" style="background:var(--surface-raised); padding:2px 8px; border-radius:12px;">9 items</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                            </h2>
+                            <div class="task-list">
+                                <div class="task-item">
+                                    <span class="task-status" onclick="toggleTaskStatus(this)">☐</span>
+                                    <div style="flex: 1; display:flex; align-items:center; gap:8px;">
+                                        <span>Renew passport</span>
+                                        <span class="tag pink">Legal</span>
+                                    </div>
+                                    <div class="priority-dot high" title="High Priority"></div>
+                                    <span class="task-date" style="margin-left: 0;">Aug 1</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div class="task-item">
+                                    <span class="task-status" onclick="toggleTaskStatus(this)">☐</span>
+                                    <div style="flex: 1; display:flex; align-items:center; gap:8px;">
+                                        <span>Pay electricity bill</span>
+                                        <span class="tag green">Finance</span>
+                                    </div>
+                                    <div class="priority-dot med" title="Medium Priority"></div>
+                                    <span class="task-date" style="margin-left: 0;">Aug 5</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div class="task-item">
+                                    <span class="task-status" onclick="toggleTaskStatus(this)">☐</span>
+                                    <div style="flex: 1; display:flex; align-items:center; gap:8px;">
+                                        <span>Buy birthday gift</span>
+                                        <span class="tag orange">Family</span>
+                                    </div>
+                                    <span class="task-date" style="margin-left: 0;">Aug 10</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pu-lists" class="pu-section" style="display:none;">
+                    <div class="section-header">Lists (3 Active)</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px;">
+                        <!-- List 1 -->
+                        <div class="card" style="padding: 20px; cursor: pointer; transition: transform 0.2s; border-radius: 12px; border: 1px solid var(--border);" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--fg-muted)';" onmouseout="this.style.transform='none'; this.style.borderColor='var(--border)';">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 600; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    📚 Reading List
+                                    <span class="tag blue" style="margin-left: 4px;">Learning</span>
+                                </h3>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="text-xs text-muted" style="background:var(--surface-raised); padding: 2px 8px; border-radius: 12px; white-space:nowrap;">12 items</span>
+                                    <button class="icon-btn" title="Edit" onclick="event.stopPropagation()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                            </div>
+                            <div style="font-size: 14px; color: var(--fg); display: flex; flex-direction: column; gap: 12px;">
+                                <div style="display: flex; gap: 12px; align-items:center;">
+                                    <div class="checkbox" style="width:16px;height:16px;min-width:16px; border-color:var(--fg-muted);" onclick="this.classList.toggle('checked');"></div> 
+                                    <span style="flex: 1;">Atomic Habits</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display: flex; gap: 12px; align-items:center;">
+                                    <div class="checkbox" style="width:16px;height:16px;min-width:16px; border-color:var(--fg-muted);" onclick="this.classList.toggle('checked');"></div> 
+                                    <span style="flex: 1;">Deep Work</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display: flex; gap: 12px; align-items:center; opacity: 0.5;">
+                                    <div class="checkbox checked" style="width:16px;height:16px;min-width:16px; border-color:var(--fg-muted);" onclick="this.classList.toggle('checked'); event.stopPropagation();"></div> 
+                                    <span style="text-decoration:line-through; flex: 1;">The Pragmatic Programmer</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display: flex; gap: 12px; align-items:center; margin-top: 4px; opacity: 0.6;">
+                                    <span style="font-size: 16px; width: 16px; text-align: center; font-weight: 500;">+</span>
+                                    <input type="text" placeholder="Add new item..." style="border:none; background:transparent; font-size:14px; outline:none; color:var(--fg); width:100%; cursor:text; padding:0;" onclick="event.stopPropagation();">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- List 2 -->
+                        <div class="card" style="padding: 20px; cursor: pointer; transition: transform 0.2s; border-radius: 12px; border: 1px solid var(--border);" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--fg-muted)';" onmouseout="this.style.transform='none'; this.style.borderColor='var(--border)';">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 600; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    🛒 Groceries
+                                    <span class="tag orange" style="margin-left: 4px;">Home</span>
+                                </h3>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="text-xs text-muted" style="background:var(--surface-raised); padding: 2px 8px; border-radius: 12px; white-space:nowrap;">5 items</span>
+                                    <button class="icon-btn" title="Edit" onclick="event.stopPropagation()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                            </div>
+                            <div style="font-size: 14px; color: var(--fg); display: flex; flex-direction: column; gap: 12px;">
+                                <div style="display: flex; gap: 12px; align-items:center;">
+                                    <div class="checkbox" style="width:16px;height:16px;min-width:16px; border-color:var(--fg-muted);" onclick="this.classList.toggle('checked');"></div> 
+                                    <span style="flex: 1;">Oat Milk</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display: flex; gap: 12px; align-items:center;">
+                                    <div class="checkbox" style="width:16px;height:16px;min-width:16px; border-color:var(--fg-muted);" onclick="this.classList.toggle('checked');"></div> 
+                                    <span style="flex: 1;">Eggs</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display: flex; gap: 12px; align-items:center;">
+                                    <div class="checkbox" style="width:16px;height:16px;min-width:16px; border-color:var(--fg-muted);" onclick="this.classList.toggle('checked');"></div> 
+                                    <span style="flex: 1;">Bananas</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display: flex; gap: 12px; align-items:center; margin-top: 4px; opacity: 0.6;">
+                                    <span style="font-size: 16px; width: 16px; text-align: center; font-weight: 500;">+</span>
+                                    <input type="text" placeholder="Add new item..." style="border:none; background:transparent; font-size:14px; outline:none; color:var(--fg); width:100%; cursor:text; padding:0;" onclick="event.stopPropagation();">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- List 3 -->
+                        <div class="card" style="padding: 20px; cursor: pointer; transition: transform 0.2s; border-radius: 12px; border: 1px solid var(--border);" onmouseover="this.style.transform='translateY(-2px)'; this.style.borderColor='var(--fg-muted)';" onmouseout="this.style.transform='none'; this.style.borderColor='var(--border)';">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                                <h3 style="margin: 0; font-size: 16px; font-weight: 600; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                    ✈️ Japan Trip
+                                    <span class="tag green" style="margin-left: 4px;">Travel</span>
+                                    <span class="tag pink">Planning</span>
+                                </h3>
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <span class="text-xs text-muted" style="background:var(--surface-raised); padding: 2px 8px; border-radius: 12px; white-space:nowrap;">24 items</span>
+                                    <button class="icon-btn" title="Edit" onclick="event.stopPropagation()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                            </div>
+                            <div style="font-size: 14px; color: var(--fg); display: flex; flex-direction: column; gap: 12px;">
+                                <div style="display: flex; gap: 12px; align-items:center; opacity: 0.5;">
+                                    <div class="checkbox checked" style="width:16px;height:16px;min-width:16px; border-color:var(--fg-muted);" onclick="this.classList.toggle('checked'); event.stopPropagation();"></div> 
+                                    <span style="text-decoration:line-through; flex: 1;">Book Flights</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display: flex; gap: 12px; align-items:center;">
+                                    <div class="checkbox" style="width:16px;height:16px;min-width:16px; border-color:var(--fg-muted);" onclick="this.classList.toggle('checked');"></div> 
+                                    <span style="flex: 1;">Reserve Hotels</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display: flex; gap: 12px; align-items:center;">
+                                    <div class="checkbox" style="width:16px;height:16px;min-width:16px; border-color:var(--fg-muted);" onclick="this.classList.toggle('checked');"></div> 
+                                    <span style="flex: 1;">Buy JR Pass</span>
+                                    <button class="icon-btn" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                                </div>
+                                <div style="display: flex; gap: 12px; align-items:center; margin-top: 4px; opacity: 0.6;">
+                                    <span style="font-size: 16px; width: 16px; text-align: center; font-weight: 500;">+</span>
+                                    <input type="text" placeholder="Add new item..." style="border:none; background:transparent; font-size:14px; outline:none; color:var(--fg); width:100%; cursor:text; padding:0;" onclick="event.stopPropagation();">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <script>
+        function switchTab(tabId) {
+            // Update nav styles
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+
+            // Switch views
+            document.querySelectorAll('.view').forEach(el => {
+                el.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        function setTheme(themeName) {
+            document.body.setAttribute('data-theme', themeName);
+        }
+
+        function toggleTaskStatus(el) {
+            const container = el.closest('.task-item');
+            const titleSpan = container.children[1];
+            const dateSpan = container.children[3];
+            
+            if (el.textContent === '✓') {
+                el.textContent = '☐';
+                titleSpan.style.textDecoration = 'none';
+                container.style.opacity = '1';
+                if (dateSpan) dateSpan.textContent = 'Jul 15';
+            } else {
+                el.textContent = '✓';
+                titleSpan.style.textDecoration = 'line-through';
+                container.style.opacity = '0.5';
+                if (dateSpan) dateSpan.textContent = 'Done';
+            }
+        }
+
+        function switchFilter(btn) {
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const filter = btn.textContent.toLowerCase();
+            document.querySelectorAll('.pu-section').forEach(sec => {
+                if (filter === 'all') {
+                    sec.style.display = (sec.id === 'pu-all') ? 'block' : 'none';
+                } else {
+                    sec.style.display = (sec.id === 'pu-' + filter) ? 'block' : 'none';
+                }
+            });
+
+            // Handle "View all 4 habits" logic
+            const habitsLink = document.getElementById('pu-habits-link');
+            const extraHabits = document.querySelectorAll('.extra-habit');
+            if (filter === 'habits') {
+                if (habitsLink) habitsLink.style.display = 'none';
+                extraHabits.forEach(el => el.style.display = 'flex');
+            } else {
+                if (habitsLink) habitsLink.style.display = 'block';
+                extraHabits.forEach(el => el.style.display = 'none');
+            }
+
+            // Visual fade to simulate filtering
+            const content = document.querySelector('.pursuits-content');
+            if (content) {
+                content.style.opacity = '0.3';
+                setTimeout(() => {
+                    content.style.opacity = '1';
+                    content.style.transition = 'opacity 0.2s ease-in-out';
+                }, 150);
+            }
+        }
+
+        function buildInlineCalendars() {
+            const habits = ['meditation', 'read', 'exercise', 'deepwork'];
+            habits.forEach(key => {
+                const container = document.getElementById(`inline-cal-${key}`);
+                if (!container) return;
+                
+                // Show 16 weeks (112 days)
+                for (let i = 0; i < 112; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'inline-cal-cell';
+                    // Randomize done state for mockup
+                    if (Math.random() > 0.3) {
+                        cell.classList.add('done');
+                        if (Math.random() > 0.5) cell.classList.add('level-4');
+                    }
+                    container.appendChild(cell);
+                }
+            });
+        }
+        
+        // Initialize
+        buildInlineCalendars();
+    </script>
+    <!-- Create Commitment Modal -->
+    <div id="create-modal-overlay" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="modal-card card" style="width: 100%; max-width: 500px; padding: 32px; background: var(--bg); border: 1px solid var(--border); box-shadow: 0 12px 32px rgba(0,0,0,0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 id="modal-title" style="font-size: 20px; font-weight: 600; margin: 0;">Create New Commitment</h2>
+                <button class="icon-btn" onclick="document.getElementById('create-modal-overlay').style.display='none'" style="width: 32px; height: 32px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div id="modal-type-selection">
+                <p style="color: var(--fg-muted); margin-bottom: 16px;">What kind of commitment would you like to create?</p>
+                
+                <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+                    <button class="type-select-btn active" style="flex: 1; padding: 12px 0; border-radius: 8px; border: 2px solid var(--accent); background: var(--surface); cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px;" onclick="selectCommitmentType(this, 'habit')">
+                        <span style="font-size: 16px;">🔄</span>
+                        <span style="font-weight: 500; font-size: 13px; color: var(--fg);">Habit</span>
+                    </button>
+                    <button class="type-select-btn" style="flex: 1; padding: 12px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px;" onclick="selectCommitmentType(this, 'goal')">
+                        <span style="font-size: 16px;">🎯</span>
+                        <span style="font-weight: 500; font-size: 13px; color: var(--fg);">Goal</span>
+                    </button>
+                    <button class="type-select-btn" style="flex: 1; padding: 12px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px;" onclick="selectCommitmentType(this, 'task')">
+                        <span style="font-size: 16px;">📋</span>
+                        <span style="font-weight: 500; font-size: 13px; color: var(--fg);">Task</span>
+                    </button>
+                    <button class="type-select-btn" style="flex: 1; padding: 12px 0; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 6px;" onclick="selectCommitmentType(this, 'list')">
+                        <span style="font-size: 16px;">📝</span>
+                        <span style="font-weight: 500; font-size: 13px; color: var(--fg);">List</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--fg-muted);">Name</label>
+                    <input id="modal-title-input" type="text" placeholder="e.g. Read 10 pages a day" style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--fg); font-size: 14px; outline: none; box-sizing: border-box;">
+                </div>
+
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--fg-muted);">Description <span style="color: var(--border); font-weight: 400;">(optional)</span></label>
+                    <textarea placeholder="Add any details, notes, or criteria for success..." style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--fg); font-size: 14px; outline: none; box-sizing: border-box; min-height: 80px; resize: vertical; font-family: inherit;"></textarea>
+                </div>
+                
+                <!-- LabelPicker Component -->
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--fg-muted);">Labels</label>
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <!-- List of selected labels -->
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                            <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); color: #3b82f6; font-size: 12px; font-weight: 500;">
+                                Health
+                                <button style="background: none; border: none; padding: 0; color: inherit; cursor: pointer; display: flex; align-items: center;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
+                            </span>
+                            <span style="display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 4px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #10b981; font-size: 12px; font-weight: 500;">
+                                Morning
+                                <button style="background: none; border: none; padding: 0; color: inherit; cursor: pointer; display: flex; align-items: center;">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                </button>
+                            </span>
+                        </div>
+                        
+                        <!-- Search box and Edit button -->
+                        <div style="display: flex; gap: 8px; align-items: center;">
+                            <div style="position: relative; flex: 1;">
+                                <input type="text" placeholder="Search or create new label..." style="width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--fg); font-size: 13px; outline: none; box-sizing: border-box;">
+                            </div>
+                            <button class="icon-btn" title="Manage Labels" style="width: 38px; height: 38px; padding: 0; display: flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid var(--border); background: var(--surface);" onmouseover="this.style.background='var(--surface-raised)'" onmouseout="this.style.background='var(--surface)'">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--fg-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Dynamic Configs -->
+                <div id="config-habit" class="config-panel" style="display: flex; gap: 16px;">
+                    <div style="flex: 1;">
+                        <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--fg-muted);">Target Count (per week)</label>
+                        <input type="number" value="7" min="1" max="7" style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--fg); font-size: 14px; outline: none; box-sizing: border-box;">
+                    </div>
+                </div>
+
+                <div id="config-goal" class="config-panel" style="display: none; flex-direction: column; gap: 16px;">
+                    <div style="display: flex; gap: 16px;">
+                        <div style="flex: 1;">
+                            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--fg-muted);">Deadline <span style="color: var(--border); font-weight: 400;">(optional)</span></label>
+                            <input type="date" style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--fg-muted); font-size: 14px; outline: none; box-sizing: border-box; cursor: pointer;">
+                        </div>
+                        <div style="flex: 1;">
+                            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--fg-muted);">Progress Type</label>
+                            <select id="goal-progress-select" style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--fg); font-size: 14px; outline: none; appearance: none; cursor: pointer; box-sizing: border-box;" onchange="
+                                document.getElementById('goal-percentage-fields').style.display = this.value === 'percentage' ? 'flex' : 'none';
+                                document.getElementById('progress-helper-text').innerText = this.value === 'checklist' 
+                                    ? 'Add sub-tasks as you go. 5/5 doesn\'t mean the goal is 100% complete if you plan to add more.' 
+                                    : 'Track a known numeric target (e.g., 100 books) so you don\'t have to create 100 separate task rows.';
+                            ">
+                                <option value="checklist">Checklist (Open-ended sub-tasks)</option>
+                                <option value="percentage">Numeric Target (Known total)</option>
+                            </select>
+                            <div id="progress-helper-text" style="font-size: 12px; color: var(--fg-muted); margin-top: 8px; line-height: 1.4;">
+                                Add sub-tasks as you go. 5/5 doesn't mean the goal is 100% complete if you plan to add more.
+                            </div>
+                        </div>
+                    </div>
+                    <div id="goal-percentage-fields" style="display: none;">
+                        <div style="flex: 1;">
+                            <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--fg-muted);">Target Value</label>
+                            <input type="number" placeholder="e.g. 100" style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--fg); font-size: 14px; outline: none; box-sizing: border-box;">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="config-task" class="config-panel" style="display: none; gap: 16px;">
+                    <div style="flex: 1;">
+                        <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--fg-muted);">Priority</label>
+                        <select style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--fg); font-size: 14px; outline: none; appearance: none; cursor: pointer; box-sizing: border-box;">
+                            <option>None</option>
+                            <option>Low</option>
+                            <option>Medium</option>
+                            <option>High</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--fg-muted);">Due Date</label>
+                        <input type="date" style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--fg-muted); font-size: 14px; outline: none; box-sizing: border-box; cursor: pointer;">
+                    </div>
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px;">
+                <button style="padding: 10px 20px; border-radius: 8px; border: none; background: transparent; color: var(--fg); font-weight: 500; cursor: pointer;" onclick="document.getElementById('create-modal-overlay').style.display='none'">Cancel</button>
+                <button id="modal-submit-btn" class="btn-primary" style="padding: 10px 24px;" onclick="document.getElementById('create-modal-overlay').style.display='none'">Create</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Record Modal -->
+    <div id="edit-record-modal-overlay" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 1000; align-items: center; justify-content: center;">
+        <div class="modal-card card" style="width: 100%; max-width: 400px; padding: 32px; background: var(--bg); border: 1px solid var(--border); box-shadow: 0 12px 32px rgba(0,0,0,0.2);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <h2 style="font-size: 20px; font-weight: 600; margin: 0;">Edit Record</h2>
+                <button class="icon-btn" onclick="document.getElementById('edit-record-modal-overlay').style.display='none'" style="width: 32px; height: 32px;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--fg-muted);">Record Content</label>
+                    <input id="record-title-input" type="text" style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--fg); font-size: 14px; outline: none; box-sizing: border-box;">
+                </div>
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--fg-muted);">Comments / Notes <span style="color: var(--border); font-weight: 400;">(optional)</span></label>
+                    <textarea placeholder="Add any details, context, or notes..." style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--fg); font-size: 14px; outline: none; box-sizing: border-box; min-height: 80px; resize: vertical; font-family: inherit;"></textarea>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 13px; font-weight: 500; margin-bottom: 8px; color: var(--fg-muted);">Date</label>
+                    <input type="date" style="width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--fg-muted); font-size: 14px; outline: none; box-sizing: border-box; cursor: pointer;">
+                </div>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 32px;">
+                <button style="padding: 10px 20px; border-radius: 8px; border: none; background: transparent; color: var(--fg); font-weight: 500; cursor: pointer;" onclick="document.getElementById('edit-record-modal-overlay').style.display='none'">Cancel</button>
+                <button class="btn-primary" style="padding: 10px 24px;" onclick="document.getElementById('edit-record-modal-overlay').style.display='none'">Save Changes</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function selectCommitmentType(btn, type) {
+            document.querySelectorAll('.type-select-btn').forEach(b => {
+                b.classList.remove('active');
+                b.style.border = '1px solid var(--border)';
+            });
+            btn.classList.add('active');
+            btn.style.border = '2px solid var(--accent)';
+            
+            document.querySelectorAll('.config-panel').forEach(p => p.style.display = 'none');
+            
+            const activePanel = document.getElementById('config-' + type);
+            if (activePanel) {
+                activePanel.style.display = 'flex';
+            }
+        }
+
+        window.openCreateModal = function() {
+            document.getElementById('modal-type-selection').style.display = 'block';
+            document.getElementById('modal-title').innerText = 'Create New Commitment';
+            document.getElementById('modal-submit-btn').innerText = 'Create';
+            document.getElementById('modal-title-input').value = '';
+            document.getElementById('create-modal-overlay').style.display = 'flex';
+        };
+
+        window.openEditModal = function(editBtn) {
+            let type = 'task'; // default
+            if (editBtn.closest('#pu-habits')) type = 'habit';
+            else if (editBtn.closest('#pu-goals')) type = 'goal';
+            else if (editBtn.closest('#pu-lists')) type = 'list';
+            else if (editBtn.closest('#pu-tasks')) type = 'task';
+            
+            const row = editBtn.closest('.draggable-item, .habit-item, .task-item, .card');
+            
+            // Determine if this is a Record or a Commitment
+            const isGoalItem = editBtn.closest('#pu-goals') && editBtn.closest('.sub-tasks') !== null;
+            const isListItem = editBtn.closest('#pu-lists') && editBtn.closest('.card > div') !== null;
+            const isRecord = isListItem || isGoalItem;
+            
+            let titleText = '';
+            if (row) {
+                const spans = Array.from(row.querySelectorAll('span'));
+                for(let s of spans) {
+                    if (!s.classList.contains('task-status') && !s.classList.contains('tag') && !s.classList.contains('task-date') && !s.classList.contains('text-xs') && !s.closest('.section-header')) {
+                        if (s.innerText.trim()) {
+                            titleText = s.innerText.trim();
+                            break;
+                        }
+                    }
+                }
+                if (!titleText) {
+                    const h2 = row.querySelector('h2');
+                    if (h2) titleText = h2.innerText.trim();
+                }
+            }
+            
+            if (isRecord) {
+                // Pop the Record modal
+                document.getElementById('record-title-input').value = titleText;
+                document.getElementById('edit-record-modal-overlay').style.display = 'flex';
+                return;
+            }
+            
+            // Otherwise, pop the Commitment modal
+            document.getElementById('modal-type-selection').style.display = 'none';
+            document.getElementById('modal-title').innerText = 'Edit Commitment';
+            document.getElementById('modal-submit-btn').innerText = 'Save Changes';
+            document.getElementById('modal-title-input').value = titleText;
+            
+            const typeBtn = document.querySelector(".type-select-btn[onclick*=\"'" + type + "'\"]");
+            if (typeBtn) selectCommitmentType(typeBtn, type);
+            
+            document.getElementById('create-modal-overlay').style.display = 'flex';
+        };
+    </script>
+    <style>
+    .drag-handle {
+        cursor: grab;
+        opacity: 0.3;
+        padding-right: 4px;
+        display: flex;
+        align-items: center;
+    }
+    .drag-handle:hover {
+        opacity: 0.8;
+    }
+    .draggable-item {
+        transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+        border-radius: 6px;
+    }
+    .draggable-item.dragging {
+        opacity: 0.5;
+        background: var(--surface-raised);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transform: scale(1.02);
+        z-index: 100;
+    }
+    
+    /* Drag & Drop Nesting Indicators */
+    .nest-target {
+        background-color: var(--surface-raised);
+        outline: 2px dashed var(--accent);
+        outline-offset: -2px;
+    }
+    .insert-before {
+        box-shadow: 0 -2px 0 var(--accent);
+    }
+    .insert-after {
+        box-shadow: 0 2px 0 var(--accent);
+    }
+    </style>
+    <script>
+    window.isItemDone = function(el) {
+        return el.style.opacity === '0.5' || (el.style.opacity && parseFloat(el.style.opacity) < 1) || el.querySelector('.checked') !== null || el.querySelector('.task-status')?.innerText === '✓';
+    };
+
+    // Global function for inline task status toggle
+    window.toggleTaskStatus = function(span) {
+        const isDone = span.innerText === '✓';
+        span.innerText = isDone ? '☐' : '✓';
+        const taskText = span.nextElementSibling;
+        if (isDone) {
+            taskText.style.textDecoration = 'none';
+            span.parentElement.style.opacity = '1';
+        } else {
+            taskText.style.textDecoration = 'line-through';
+            span.parentElement.style.opacity = '0.5';
+        }
+        window.sortItem(span.parentElement, !isDone);
+    };
+
+    // Global function to sort items to bottom when done
+    window.sortItem = function(row, isDone) {
+        const container = row.parentNode;
+        if (!container || (!container.classList.contains('task-list') && !container.closest('#pu-lists'))) return;
+        
+        if (isDone) {
+            const lastChild = container.lastElementChild;
+            if (lastChild && (!lastChild.classList.contains('draggable-item') || lastChild.querySelector('input'))) {
+                container.insertBefore(row, lastChild);
+            } else {
+                container.appendChild(row);
+            }
+        } else {
+            const siblings = Array.from(container.children);
+            const firstDone = siblings.find(child => {
+                if (child === row || !child.classList.contains('draggable-item')) return false;
+                return window.isItemDone(child);
+            });
+            if (firstDone) {
+                container.insertBefore(row, firstDone);
+            } else {
+                const lastChild = container.lastElementChild;
+                if (lastChild && (!lastChild.classList.contains('draggable-item') || lastChild.querySelector('input'))) {
+                    container.insertBefore(row, lastChild);
+                } else {
+                    container.appendChild(row);
+                }
+            }
+        }
+    };
+
+    // Enable Drag and Drop reordering & nesting
+    document.addEventListener('DOMContentLoaded', () => {
+        // Handle regular checkbox clicks for sorting
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('checkbox')) {
+                setTimeout(() => {
+                    const isChecked = e.target.classList.contains('checked');
+                    const row = e.target.closest('.draggable-item, .habit-item');
+                    if (row) {
+                        row.style.opacity = isChecked ? '0.5' : '1';
+                        const textSpan = row.querySelector('span:not(.tag)');
+                        if (textSpan) textSpan.style.textDecoration = isChecked ? 'line-through' : 'none';
+                        window.sortItem(row, isChecked);
+                    }
+                }, 10);
+            }
+            
+            // Filter toggle logic
+            if (e.target.closest('.filter-btn')) {
+                switchFilter(e.target.closest('.filter-btn'));
+            }
+
+            // Edit button logic
+            const editBtn = e.target.closest('button[title="Edit"]');
+            if (editBtn) {
+                window.openEditModal(editBtn);
+            }
+        });
+
+        const itemSelectors = [
+            '#pu-habits .habit-item', 
+            '.sub-tasks > div:not(.input-bar)', 
+            '.task-item', 
+            '#pu-lists .card > div:nth-child(2) > div:not(:last-child)', 
+            '#pu-goals .dashboard-grid > .card'
+        ];
+        
+        itemSelectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach(el => {
+                initDraggable(el);
+            });
+        });
+
+        function initDraggable(el) {
+            if (el.draggable) return; // already init
+            
+            el.draggable = true;
+            el.classList.add('draggable-item');
+            
+            // Inject smaller drag handle
+            if (!el.classList.contains('card') && !el.querySelector('.drag-handle')) {
+                const handle = document.createElement('div');
+                handle.className = 'drag-handle';
+                handle.innerHTML = '<svg width="8" height="14" viewBox="0 0 8 14" fill="currentColor"><circle cx="2.5" cy="2" r="1.5"/><circle cx="2.5" cy="7" r="1.5"/><circle cx="2.5" cy="12" r="1.5"/><circle cx="6.5" cy="2" r="1.5"/><circle cx="6.5" cy="7" r="1.5"/><circle cx="6.5" cy="12" r="1.5"/></svg>';
+                
+                if (el.classList.contains('habit-item')) {
+                    el.querySelector('.habit-left').prepend(handle);
+                } else {
+                    el.prepend(handle);
+                }
+            }
+
+            el.addEventListener('dragstart', (e) => {
+                e.stopPropagation();
+                el.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', 'drag-item');
+            });
+            
+            el.addEventListener('dragend', (e) => {
+                e.stopPropagation();
+                el.classList.remove('dragging');
+                document.querySelectorAll('.nest-target, .insert-before, .insert-after').forEach(n => {
+                    n.classList.remove('nest-target', 'insert-before', 'insert-after');
+                });
+
+                // Update UI based on dropping across Task categories
+                if (el.classList.contains('task-item')) {
+                    const targetCard = el.closest('.card');
+                    if (targetCard) {
+                        const title = targetCard.querySelector('h2').textContent;
+                        const datePill = el.querySelector('.task-date');
+                        if (title.includes('Inbox') || title.includes('Today')) {
+                            if (datePill) datePill.remove();
+                        } else if (title.includes('Upcoming')) {
+                            if (!datePill) {
+                                const span = document.createElement('span');
+                                span.className = 'task-date';
+                                span.style.marginLeft = '0';
+                                span.innerText = 'Scheduled';
+                                const editBtn = el.querySelector('.icon-btn');
+                                el.insertBefore(span, editBtn);
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Advanced: Nesting logic for Goal Sub-tasks
+            if (el.closest('.sub-tasks')) {
+                el.addEventListener('dragover', (e) => {
+                    const dragging = document.querySelector('.dragging');
+                    if (!dragging || dragging === el || !dragging.closest('.sub-tasks')) return;
+                    
+                    e.stopPropagation(); // Stop main container from handling
+                    e.preventDefault();
+
+                    const box = el.getBoundingClientRect();
+                    const offsetY = e.clientY - box.top;
+                    
+                    el.classList.remove('nest-target', 'insert-before', 'insert-after');
+                    
+                    if (offsetY > box.height * 0.25 && offsetY < box.height * 0.75) {
+                        el.classList.add('nest-target');
+                    } else if (offsetY <= box.height * 0.25) {
+                        el.classList.add('insert-before');
+                    } else {
+                        el.classList.add('insert-after');
+                    }
+                });
+
+                el.addEventListener('dragleave', () => {
+                    el.classList.remove('nest-target', 'insert-before', 'insert-after');
+                });
+
+                el.addEventListener('drop', (e) => {
+                    const dragging = document.querySelector('.dragging');
+                    if (!dragging || dragging === el || !dragging.closest('.sub-tasks')) return;
+                    
+                    // Forbid crossing Goals explicitly
+                    if (dragging.closest('.card') !== el.closest('.card')) return;
+
+                    e.stopPropagation();
+                    e.preventDefault();
+                    
+                    if (el.classList.contains('nest-target')) {
+                        if (el.style.display === 'flex') {
+                            const row = document.createElement('div');
+                            row.style.display = 'flex';
+                            row.style.gap = '8px';
+                            row.style.alignItems = 'center';
+                            row.style.width = '100%';
+                            while (el.firstChild) {
+                                row.appendChild(el.firstChild);
+                            }
+                            el.style.display = 'block';
+                            el.appendChild(row);
+                        }
+                        
+                        let nestedContainer = el.querySelector('.nested-tasks');
+                        if (!nestedContainer) {
+                            nestedContainer = document.createElement('div');
+                            nestedContainer.className = 'nested-tasks';
+                            nestedContainer.style.marginLeft = '24px';
+                            nestedContainer.style.marginTop = '8px';
+                            nestedContainer.style.borderLeft = '2px solid var(--border)';
+                            nestedContainer.style.paddingLeft = '8px';
+                            nestedContainer.style.display = 'flex';
+                            nestedContainer.style.flexDirection = 'column';
+                            nestedContainer.style.gap = '8px';
+                            el.appendChild(nestedContainer);
+                        }
+                        nestedContainer.appendChild(dragging);
+                        
+                    } else if (el.classList.contains('insert-before')) {
+                        el.parentNode.insertBefore(dragging, el);
+                    } else {
+                        el.parentNode.insertBefore(dragging, el.nextSibling);
+                    }
+                    
+                    el.classList.remove('nest-target', 'insert-before', 'insert-after');
+                });
+            }
+        }
+
+        // Drop zones
+        const containerSelectors = [
+            '#pu-habits .card', 
+            '.sub-tasks', 
+            '.task-list', 
+            '#pu-lists .card > div:nth-child(2)', 
+            '#pu-goals .dashboard-grid'
+        ];
+        
+        const containers = containerSelectors.map(s => Array.from(document.querySelectorAll(s))).flat();
+
+        containers.forEach(container => {
+            container.addEventListener('dragover', e => {
+                e.preventDefault();
+                const dragging = document.querySelector('.dragging');
+                if (!dragging) return;
+                
+                // Forbid crossing Goals and Lists
+                if (dragging.closest('#pu-goals') || dragging.closest('#pu-lists')) {
+                    if (dragging.closest('.card') !== container.closest('.card')) {
+                        return; // Forbidden
+                    }
+                }
+
+                const isCard = dragging.classList.contains('card');
+                if (isCard && !container.classList.contains('dashboard-grid')) return;
+                if (!isCard && container.classList.contains('dashboard-grid')) return;
+
+                const afterElement = getDragAfterElement(container, e.clientY, dragging);
+                
+                if (afterElement) {
+                    container.insertBefore(dragging, afterElement);
+                } else {
+                    const isRestrictedContainer = container.classList.contains('task-list') || container.closest('#pu-lists');
+                    const draggingDone = window.isItemDone(dragging);
+                    
+                    if (isRestrictedContainer && !draggingDone) {
+                        // Dropping a pending item at the bottom of the pending list. Must insert BEFORE first done item!
+                        const siblings = Array.from(container.querySelectorAll(':scope > .draggable-item:not(.dragging)'));
+                        const firstDone = siblings.find(child => window.isItemDone(child));
+                        if (firstDone) {
+                            container.insertBefore(dragging, firstDone);
+                            return;
+                        }
+                    }
+
+                    const lastChild = container.lastElementChild;
+                    if (lastChild && (!lastChild.classList.contains('draggable-item') || lastChild.querySelector('input'))) {
+                        container.insertBefore(dragging, lastChild);
+                    } else {
+                        container.appendChild(dragging);
+                    }
+                }
+            });
+        });
+
+        function getDragAfterElement(container, y, dragging) {
+            let draggableElements = [...container.querySelectorAll(':scope > .draggable-item:not(.dragging)')];
+            
+            // Segregate drag zones based on status
+            const isRestrictedContainer = container.classList.contains('task-list') || container.closest('#pu-lists');
+            if (isRestrictedContainer && dragging) {
+                const draggingDone = window.isItemDone(dragging);
+                draggableElements = draggableElements.filter(child => window.isItemDone(child) === draggingDone);
+            }
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+    });
+    </script>
+</body>
+</html>
