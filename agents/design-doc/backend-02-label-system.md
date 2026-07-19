@@ -21,7 +21,7 @@ Two tables to manage the labels and their associations with various entities.
 | Field | Type | Description |
 |---|---|---|
 | `id` | UUID | PK |
-| `user_id` | UUID | FK → users (User who owns the label) |
+| `user_id` | Integer | FK → users (User who owns the label) |
 | `name` | `varchar(50)` | e.g., "bug", "health", "urgent" |
 | `color` | `varchar(7)` | Hex color code (e.g., "#ff0000") |
 | `description` | `varchar(255)` | Optional short description |
@@ -85,9 +85,9 @@ PUT    /api/v1/labels/entity
 Body: { "entity_type": "commitment", "entity_id": "uuid-here", "label_ids": ["uuid-1", "uuid-2"] }
 ```
 
-### 3.4 Filtering Entities by Label
+### 3.4 Filtering Entities by Label (Future Integration)
 
-To support cross-module filtering, each module's list endpoint will accept a `labels` query parameter (comma-separated UUIDs).
+To support cross-module filtering, each module's list endpoint can accept a `labels` query parameter (comma-separated UUIDs). This is not part of the initial label system implementation — it will be added when frontend components consume labels.
 
 ```
 GET /api/v1/pursuits/commitments?labels=uuid1,uuid2
@@ -120,6 +120,8 @@ GET /api/v1/labels/:id/entities
 
 ```
 backend/
+├── alembic/versions/
+│   └── 004_create_labels.py      # Migration
 ├── routers/
 │   └── labels.py                # API routes for Label CRUD and attachment
 ├── schemas/
