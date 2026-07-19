@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 
 from config import settings
 from database import Base
-from models import User, Commitment, CommitmentLink, Record  # noqa: F401 — ensure models are registered
+from models import User, Commitment, CommitmentLink, Record, Label, EntityLabel  # noqa: F401 — ensure models are registered
 
 config = context.config
 if config.config_file_name is not None:

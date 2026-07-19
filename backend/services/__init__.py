@@ -1,5 +1,7 @@
 from services.commitment_service import CommitmentService
 from services.record_service import RecordService
 from services.progress_service import ProgressService
+from services.label_service import LabelService
 
-__all__ = ["CommitmentService", "RecordService", "ProgressService"]
+__all__ = ["CommitmentService", "RecordService", "ProgressService", "LabelService"]
+
