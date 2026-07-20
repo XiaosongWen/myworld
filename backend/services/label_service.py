@@ -4,12 +4,31 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.label import Label, EntityLabel
 from schemas.label import LabelCreate, LabelUpdate, EntityLabelAttach
 
+DEFAULT_SEED_LABELS = [
+    {"name": "Health", "color": "#10b981"},
+    {"name": "Morning", "color": "#f59e0b"},
+    {"name": "Mindfulness", "color": "#8b5cf6"},
+    {"name": "Learning", "color": "#3b82f6"},
+    {"name": "Career", "color": "#ec4899"},
+    {"name": "Focus", "color": "#6366f1"},
+]
+
 class LabelService:
     @staticmethod
     async def list_labels(db: AsyncSession, user_id: int) -> list[Label]:
         query = select(Label).where(Label.user_id == user_id).order_by(Label.name.asc())
         result = await db.execute(query)
-        return list(result.scalars().all())
+        labels = list(result.scalars().all())
+        if not labels:
+            for seed in DEFAULT_SEED_LABELS:
+                db.add(Label(user_id=user_id, **seed))
+            try:
+                await db.commit()
+            except Exception:
+                await db.rollback()
+            result = await db.execute(query)
+            labels = list(result.scalars().all())
+        return labels
 
     @staticmethod
     async def get_label(db: AsyncSession, label_id: UUID, user_id: int) -> Label | None:

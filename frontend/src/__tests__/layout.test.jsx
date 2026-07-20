@@ -28,7 +28,7 @@ describe("Layout", () => {
       </MemoryRouter>
     );
 
-    const container = screen.getByText("Hello").closest(".main-content");
+    const container = screen.getByText("Hello").closest(".main-container");
     expect(container).toBeInTheDocument();
   });
 });

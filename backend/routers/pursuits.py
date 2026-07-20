@@ -227,13 +227,15 @@ async def get_daily(
     for r in all_today_records:
         records_by_commitment[r.commitment_id].append(r)
 
-    daily_habits = [
-        DailyHabitCheckin(
-            commitment=h,
-            today_record=(recs := records_by_commitment.get(h.id))[0] if recs else None,
+    daily_habits = []
+    for h in habits:
+        recs = records_by_commitment.get(h.id)
+        daily_habits.append(
+            DailyHabitCheckin(
+                commitment=h,
+                today_record=recs[0] if recs else None,
+            )
         )
-        for h in habits
-    ]
     for h in habits:
         h.progress = habit_progress.get(h.id)
 

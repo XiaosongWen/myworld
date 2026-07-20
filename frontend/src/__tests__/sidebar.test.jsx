@@ -20,12 +20,10 @@ describe("Sidebar", () => {
     );
     const expectedLabels = [
       "Dashboard",
-      "Habits",
-      "Tasks",
+      "Pursuits",
       "Photos",
       "Videos",
       "Books",
-      "Documents",
       "Knowledge",
     ];
 
@@ -42,7 +40,7 @@ describe("Sidebar", () => {
     );
 
     expect(screen.getByText("Dashboard").closest("a")).toHaveAttribute("href", "/");
-    expect(screen.getByText("Habits").closest("a")).toHaveAttribute("href", "/habits");
-    expect(screen.getByText("Tasks").closest("a")).toHaveAttribute("href", "/tasks");
+    expect(screen.getByText("Pursuits").closest("a")).toHaveAttribute("href", "/commitments");
+    expect(screen.getByText("Knowledge").closest("a")).toHaveAttribute("href", "/knowledge");
   });
 });

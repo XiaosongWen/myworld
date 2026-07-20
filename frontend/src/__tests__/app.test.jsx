@@ -3,53 +3,44 @@ import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 import App from "../App";
 
-vi.mock("../stores/useHabitsStore", () => ({
-  default: () => ({
-    habits: [],
-    heatmapData: [],
-    loading: false,
-    error: null,
-    fetchHabits: vi.fn(),
-    createHabit: vi.fn(),
-    updateHabit: vi.fn(),
-    archiveHabit: vi.fn(),
-    checkIn: vi.fn(),
-    fetchHeatmap: vi.fn(),
-  }),
+vi.mock("../stores/usePursuitsStore", () => ({
+  default: (selector) => {
+    const state = {
+      commitments: [],
+      records: [],
+      daily: null,
+      loading: false,
+      error: null,
+      fetchCommitments: vi.fn(),
+      fetchRecords: vi.fn(),
+      fetchDaily: vi.fn(),
+      createRecord: vi.fn(),
+      checkInHabit: vi.fn(),
+      uncheckHabit: vi.fn(),
+    };
+    return typeof selector === "function" ? selector(state) : state;
+  },
 }));
 
 describe("App routing", () => {
-  it("renders Dashboard heading on the root route", () => {
+  it("renders dashboard on the root route", () => {
     render(
       <MemoryRouter initialEntries={["/"]}>
         <App />
       </MemoryRouter>
     );
-    expect(
-      screen.getByRole("heading", { name: "Dashboard" })
-    ).toBeInTheDocument();
+    // Dashboard renders the live clock container
+    const clockContainer = document.querySelector(".flip-clock-container");
+    expect(clockContainer).not.toBeNull();
   });
 
-  it("renders Habits heading on /habits", () => {
+  it("renders Pursuits heading on /commitments", () => {
     render(
-      <MemoryRouter initialEntries={["/habits"]}>
+      <MemoryRouter initialEntries={["/commitments"]}>
         <App />
       </MemoryRouter>
     );
-    expect(
-      screen.getByRole("heading", { name: "Habits" })
-    ).toBeInTheDocument();
-  });
-
-  it("renders Tasks heading on /tasks", () => {
-    render(
-      <MemoryRouter initialEntries={["/tasks"]}>
-        <App />
-      </MemoryRouter>
-    );
-    expect(
-      screen.getByRole("heading", { name: "Tasks" })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pursuits" })).toBeInTheDocument();
   });
 
   it("renders Knowledge heading on /knowledge", () => {
@@ -58,20 +49,16 @@ describe("App routing", () => {
         <App />
       </MemoryRouter>
     );
-    expect(
-      screen.getByRole("heading", { name: "Knowledge" })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Knowledge" })).toBeInTheDocument();
   });
 
-  it("renders sidebar alongside the route content", () => {
+  it("renders sidebar alongside route content", () => {
     render(
       <MemoryRouter initialEntries={["/photos"]}>
         <App />
       </MemoryRouter>
     );
     expect(screen.getByText("MyWorld")).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "Photos" })
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Photos" })).toBeInTheDocument();
   });
 });
