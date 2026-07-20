@@ -5,15 +5,18 @@ import GoalCard from "../components/pursuits/GoalCard";
 import TaskCard from "../components/pursuits/TaskCard";
 import CreateCommitmentModal from "../components/pursuits/CreateCommitmentModal";
 import InlineCalendar from "../components/pursuits/InlineCalendar";
+import CommitmentDetail from "./CommitmentDetail";
 
 const FILTERS = ["all", "habit", "goal", "task", "list"];
 
 export default function Commitments() {
   const { commitments, fetchCommitments, labels, fetchLabels, daily, fetchDaily, checkInHabit, uncheckHabit, loading, error } = usePursuitsStore();
   const [filter, setFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
   const [createType, setCreateType] = useState(null);
   const [editingCommitment, setEditingCommitment] = useState(null);
+  const [selectedDetailId, setSelectedDetailId] = useState(null);
 
   const todayISO = new Date().toISOString().split("T")[0];
 
@@ -23,10 +26,18 @@ export default function Commitments() {
     fetchDaily(todayISO);
   }, [fetchCommitments, fetchLabels, fetchDaily, todayISO]);
 
-  const habits = commitments.filter((c) => c.type === "habit");
-  const goals = commitments.filter((c) => c.type === "goal");
-  const tasks = commitments.filter((c) => c.type === "task");
-  const lists = commitments.filter((c) => c.type === "list");
+  const query = searchQuery.trim().toLowerCase();
+  const filteredCommitments = commitments.filter((c) => {
+    if (!query) return true;
+    const matchTitle = c.title?.toLowerCase().includes(query);
+    const matchTags = (c.config?.tags || []).some((t) => t.toLowerCase().includes(query));
+    return matchTitle || matchTags;
+  });
+
+  const habits = filteredCommitments.filter((c) => c.type === "habit");
+  const goals = filteredCommitments.filter((c) => c.type === "goal");
+  const tasks = filteredCommitments.filter((c) => c.type === "task");
+  const lists = filteredCommitments.filter((c) => c.type === "list");
 
   const openCreate = (type) => {
     setCreateType(type);
@@ -63,7 +74,13 @@ export default function Commitments() {
         <div style={{ display: "flex", gap: "12px" }}>
           <div className="input-bar" style={{ background: "var(--bg)" }}>
             <span>🔍</span>
-            <input type="text" placeholder="Search commitments..." style={{ width: 150 }} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search commitments..."
+              style={{ width: 170 }}
+            />
           </div>
           <button className="btn-primary" onClick={() => openCreate(filter === "all" ? null : filter)}>
             + New ▾
@@ -146,7 +163,12 @@ export default function Commitments() {
                           onClick={() => handleHabitCheckIn(h.id, dh?.today_record?.id)}
                           style={{ cursor: "pointer" }}
                         />
-                        <span style={{ fontWeight: 500, color: "var(--fg)" }}>{h.title}</span>
+                        <span
+                          style={{ fontWeight: 500, color: "var(--fg)", cursor: "pointer" }}
+                          onClick={() => setSelectedDetailId(h.id)}
+                        >
+                          {h.title}
+                        </span>
                       </div>
 
                       <div style={{ flex: 1, marginLeft: 24, display: "flex", gap: 6, alignItems: "center" }}>
@@ -214,7 +236,7 @@ export default function Commitments() {
             ) : (
               <div className="dashboard-grid">
                 {goals.map((g) => (
-                  <GoalCard key={g.id} goal={g} showSubGoals onEdit={(goal) => setEditingCommitment(goal)} />
+                  <GoalCard key={g.id} goal={g} showSubGoals onOpenDetail={(id) => setSelectedDetailId(id)} onEdit={(goal) => setEditingCommitment(goal)} />
                 ))}
               </div>
             )}
@@ -232,7 +254,7 @@ export default function Commitments() {
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div className="priority-dot low" /> Low</div>
               </div>
             </div>
-            <TaskGroupView tasks={tasks} onEdit={(task) => setEditingCommitment(task)} />
+            <TaskGroupView tasks={tasks} onOpenDetail={(id) => setSelectedDetailId(id)} onEdit={(task) => setEditingCommitment(task)} />
           </div>
         )}
 
@@ -272,6 +294,14 @@ export default function Commitments() {
             setShowCreate(false);
             setEditingCommitment(null);
           }}
+        />
+      )}
+
+      {selectedDetailId && (
+        <CommitmentDetail
+          commitmentId={selectedDetailId}
+          onClose={() => setSelectedDetailId(null)}
+          onEdit={(c) => setEditingCommitment(c)}
         />
       )}
     </div>
@@ -314,7 +344,7 @@ function SummaryCard({ icon, label, count, items, onClick }) {
 
 // ── Task group view (Inbox / Today / Upcoming) ─────────────────────────
 
-function TaskGroupView({ tasks, onEdit }) {
+function TaskGroupView({ tasks, onOpenDetail, onEdit }) {
   const todayISO = new Date().toISOString().split("T")[0];
   const inbox = tasks.filter((t) => !t.due_date);
   const todayTasks = tasks.filter((t) => t.due_date === todayISO);
@@ -322,14 +352,14 @@ function TaskGroupView({ tasks, onEdit }) {
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
-      <TaskColumn icon="📥" label="Inbox" tasks={inbox} onEdit={onEdit} />
-      <TaskColumn icon="☀️" label="Today" tasks={todayTasks} onEdit={onEdit} />
-      <TaskColumn icon="📅" label="Upcoming" tasks={upcoming} onEdit={onEdit} />
+      <TaskColumn icon="📥" label="Inbox" tasks={inbox} onOpenDetail={onOpenDetail} onEdit={onEdit} />
+      <TaskColumn icon="☀️" label="Today" tasks={todayTasks} onOpenDetail={onOpenDetail} onEdit={onEdit} />
+      <TaskColumn icon="📅" label="Upcoming" tasks={upcoming} onOpenDetail={onOpenDetail} onEdit={onEdit} />
     </div>
   );
 }
 
-function TaskColumn({ icon, label, tasks, onEdit }) {
+function TaskColumn({ icon, label, tasks, onOpenDetail, onEdit }) {
   const { updateCommitment } = usePursuitsStore();
 
   const handleToggle = async (task) => {
@@ -347,7 +377,7 @@ function TaskColumn({ icon, label, tasks, onEdit }) {
       </h2>
       <div className="task-list">
         {tasks.map((t) => (
-          <TaskCard key={t.id} task={t} onToggleStatus={() => handleToggle(t)} onEdit={onEdit} />
+          <TaskCard key={t.id} task={t} onToggleStatus={() => handleToggle(t)} onOpenDetail={onOpenDetail} onEdit={onEdit} />
         ))}
         {tasks.length === 0 && <p className="text-muted text-sm">All clear ✓</p>}
         <div className="input-bar" style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
