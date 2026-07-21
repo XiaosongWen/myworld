@@ -6,7 +6,9 @@ import GoalCard from "../components/pursuits/GoalCard";
 import MonthGlance from "../components/pursuits/MonthGlance";
 import CreateCommitmentModal from "../components/pursuits/CreateCommitmentModal";
 import CommitmentDetail from "./CommitmentDetail";
+import LabelPill from "../components/pursuits/LabelPill";
 import { fetchWeatherForecast, searchWeatherLocations } from "../api/weather";
+
 
 
 
