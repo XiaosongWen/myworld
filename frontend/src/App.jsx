@@ -14,6 +14,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<DailyLog />} />
         <Route path="/commitments" element={<Commitments />} />
+        <Route path="/commitments/:tab" element={<Commitments />} />
         <Route path="/photos" element={<Photos />} />
         <Route path="/videos" element={<Videos />} />
         <Route path="/books" element={<Books />} />

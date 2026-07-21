@@ -94,7 +94,7 @@ class CommitmentService:
             query = query.join(CommitmentLink, Commitment.id == CommitmentLink.child_id)\
                          .where(CommitmentLink.parent_id == parent_id)
 
-        query = query.order_by(Commitment.sort_order.asc(), Commitment.created_at.desc())
+        query = query.order_by(Commitment.sort_order.asc(), Commitment.created_at.asc())
         result = await db.execute(query)
         commitments = list(result.scalars().all())
 

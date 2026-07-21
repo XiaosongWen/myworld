@@ -25,7 +25,7 @@ describe("usePursuitsStore", () => {
     expect(newState.loading).toBe(false);
   });
 
-  it("creates commitment and prepends to state", async () => {
+  it("creates commitment and appends to bottom of state", async () => {
     usePursuitsStore.setState({ commitments: [{ id: 1 }] });
     pursuitsApi.createCommitment.mockResolvedValueOnce({ id: 2 });
     
@@ -34,6 +34,6 @@ describe("usePursuitsStore", () => {
     
     const newState = usePursuitsStore.getState();
     expect(newState.commitments).toHaveLength(2);
-    expect(newState.commitments[0].id).toBe(2); // prepended
+    expect(newState.commitments[1].id).toBe(2); // appended to bottom
   });
 });

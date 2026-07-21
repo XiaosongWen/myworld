@@ -102,41 +102,56 @@ export default function LabelPicker({ selectedLabels = [], onChange }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
       {/* Selected Label Chips */}
-      <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-        {selectedLabels.map((tag) => {
-          const matched = labelsList.find((l) => l.name === tag);
-          const color = matched?.color || "#3b82f6";
-          return (
-            <span
-              key={tag}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "4px 10px",
-                borderRadius: "12px",
-                background: `${color}18`,
-                border: `1px solid ${color}40`,
-                color: color,
-                fontSize: "12px",
-                fontWeight: "500",
-              }}
-            >
-              {tag}
-              <button
-                type="button"
-                onClick={() => toggleLabel(tag)}
-                style={{ background: "none", border: "none", padding: 0, color: "inherit", cursor: "pointer", display: "flex", alignItems: "center" }}
+      {selectedLabels.length > 0 && (
+        <div
+          style={{
+            display: "flex",
+            gap: "6px",
+            flexWrap: "wrap",
+            maxHeight: selectedLabels.length > 5 ? "84px" : "none",
+            overflowY: selectedLabels.length > 5 ? "auto" : "visible",
+            padding: selectedLabels.length > 5 ? "6px" : "0px",
+            border: selectedLabels.length > 5 ? "1px solid var(--border)" : "none",
+            borderRadius: selectedLabels.length > 5 ? "8px" : "0px",
+            background: selectedLabels.length > 5 ? "var(--surface)" : "transparent",
+            boxSizing: "border-box",
+          }}
+        >
+          {selectedLabels.map((tag) => {
+            const matched = labelsList.find((l) => l.name === tag);
+            const color = matched?.color || "#3b82f6";
+            return (
+              <span
+                key={tag}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "6px",
+                  padding: "4px 10px",
+                  borderRadius: "12px",
+                  background: `${color}18`,
+                  border: `1px solid ${color}40`,
+                  color: color,
+                  fontSize: "12px",
+                  fontWeight: "500",
+                }}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </span>
-          );
-        })}
-      </div>
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => toggleLabel(tag)}
+                  style={{ background: "none", border: "none", padding: 0, color: "inherit", cursor: "pointer", display: "flex", alignItems: "center" }}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </span>
+            );
+          })}
+        </div>
+      )}
 
       {/* Input & Dropdown Container */}
       <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
@@ -177,7 +192,7 @@ export default function LabelPicker({ selectedLabels = [], onChange }) {
                 border: "1px solid var(--border)",
                 borderRadius: "8px",
                 boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-                maxHeight: "220px",
+                maxHeight: "170px",
                 overflowY: "auto",
                 zIndex: 1100,
               }}

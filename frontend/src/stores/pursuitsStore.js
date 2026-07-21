@@ -40,7 +40,7 @@ const usePursuitsStore = create((set, get) => ({
   createCommitment: async (payload) => {
     try {
       const commitment = await pursuitsApi.createCommitment(payload);
-      set((state) => ({ commitments: [commitment, ...state.commitments] }));
+      set((state) => ({ commitments: [...state.commitments, commitment] }));
       return commitment;
     } catch (err) {
       set({ error: err.message });

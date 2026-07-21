@@ -9,9 +9,20 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
   if (!goal) return null;
 
   // Retrieve sub-goals linked to this goal via parent_id
-  const subGoals = commitments.filter(
-    (c) => c.parent_id === goal.id || (c.type === "sub-goal" && c.parent_id === goal.id)
-  );
+  const subGoals = commitments
+    .filter((c) => c.parent_id === goal.id || (c.type === "sub-goal" && c.parent_id === goal.id))
+    .sort((a, b) => {
+      const aDone = a.status === "completed";
+      const bDone = b.status === "completed";
+      if (aDone && !bDone) return 1;
+      if (!aDone && bDone) return -1;
+      if (aDone && bDone) {
+        const timeA = new Date(a.updated_at || a.completed_at || 0).getTime();
+        const timeB = new Date(b.updated_at || b.completed_at || 0).getTime();
+        return timeB - timeA;
+      }
+      return 0;
+    });
 
   // Compute percentage from subGoals if available, else fallback to goal.progress.percent
   let percent = Math.round(goal.progress?.percent ?? 0);

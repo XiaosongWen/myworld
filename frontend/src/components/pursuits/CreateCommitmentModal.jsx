@@ -115,6 +115,8 @@ export default function CreateCommitmentModal({ defaultType = "habit", commitmen
         style={{
           width: "100%",
           maxWidth: "500px",
+          maxHeight: "85vh",
+          overflowY: "auto",
           padding: "32px",
           background: "var(--bg)",
           border: "1px solid var(--border)",
