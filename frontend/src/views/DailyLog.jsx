@@ -7,6 +7,8 @@ import MonthGlance from "../components/pursuits/MonthGlance";
 import CreateCommitmentModal from "../components/pursuits/CreateCommitmentModal";
 import CommitmentDetail from "./CommitmentDetail";
 import LabelPill from "../components/pursuits/LabelPill";
+import { fetchWeatherForecast } from "../api/weather";
+
 
 function useLiveClock() {
   const [time, setTime] = useState(new Date());
@@ -485,26 +487,124 @@ const PLACEHOLDER_FORECAST = [
 ];
 
 function WeatherStrip() {
+  const [forecast, setForecast] = useState(null);
+  const [unit, setUnit] = useState(() => {
+    try {
+      return localStorage.getItem("weather_unit") || "F";
+    } catch {
+      return "F";
+    }
+  });
+
+  const toggleUnit = () => {
+    const next = unit === "F" ? "C" : "F";
+    setUnit(next);
+    try {
+      localStorage.setItem("weather_unit", next);
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadForecast = async (lat, lon) => {
+      try {
+        const res = await fetchWeatherForecast(lat, lon);
+        if (isMounted && res?.data) {
+          setForecast(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch weather forecast:", err);
+      }
+    };
+
+    if ("geolocation" in navigator && typeof navigator.geolocation.getCurrentPosition === "function") {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => loadForecast(pos.coords.latitude, pos.coords.longitude),
+        () => loadForecast(),
+        { timeout: 3000 }
+      );
+    } else {
+      loadForecast();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const items = forecast || PLACEHOLDER_FORECAST;
+
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: "16px",
-      background: "var(--surface)", padding: "8px 20px",
-      borderRadius: "var(--radius-lg)", boxShadow: "0 2px 12px rgba(0,0,0,0.02)",
-    }}>
-      {PLACEHOLDER_FORECAST.map((day, i) => (
-        <React.Fragment key={day.label}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-            <span style={{ fontSize: "11px", fontWeight: 600, color: i === 0 ? "var(--fg)" : "var(--fg-muted)" }}>
-              {day.label}
-            </span>
-            <span style={{ fontSize: "16px" }}>{day.icon}</span>
-            <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--fg)" }}>{day.temp}</span>
-          </div>
-          {i < PLACEHOLDER_FORECAST.length - 1 && (
-            <div style={{ width: "1px", height: "24px", background: "var(--border)" }} />
-          )}
-        </React.Fragment>
-      ))}
+    <div
+      className="weather-strip"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "16px",
+        background: "var(--surface)",
+        padding: "8px 20px",
+        borderRadius: "var(--radius-lg)",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.02)",
+      }}
+    >
+      {items.map((day, i) => {
+        const tempVal =
+          day.temp_f != null || day.temp_c != null
+            ? `${unit === "F" ? day.temp_f : day.temp_c}°`
+            : day.temp || "—°";
+
+        return (
+          <React.Fragment key={day.label + i}>
+            <div
+              title={day.condition || ""}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "2px",
+                cursor: "pointer",
+              }}
+              onClick={toggleUnit}
+            >
+              <span
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: i === 0 ? "var(--fg)" : "var(--fg-muted)",
+                }}
+              >
+                {day.label}
+              </span>
+              <span style={{ fontSize: "16px" }}>{day.icon}</span>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--fg)" }}>
+                {tempVal}
+              </span>
+            </div>
+            {i < items.length - 1 && (
+              <div style={{ width: "1px", height: "24px", background: "var(--border)" }} />
+            )}
+          </React.Fragment>
+        );
+      })}
+      <button
+        onClick={toggleUnit}
+        title="Toggle °F / °C"
+        style={{
+          border: "none",
+          background: "transparent",
+          cursor: "pointer",
+          fontSize: "11px",
+          fontWeight: 700,
+          color: "var(--fg-muted)",
+          padding: "2px 4px",
+          borderRadius: "4px",
+          marginLeft: "-4px",
+        }}
+      >
+        °{unit}
+      </button>
     </div>
   );
 }
+
