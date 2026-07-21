@@ -739,33 +739,10 @@ function LocationPickerModal({ onClose, onSelectLocation, onResetLocation }) {
   }, [query]);
 
   return (
-    <div
-      className="modal-backdrop"
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.4)",
-        zIndex: 1000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <div
-        className="modal-content"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "var(--surface)",
-          padding: "20px",
-          borderRadius: "12px",
-          width: "360px",
-          maxWidth: "90vw",
-          boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-          <h3 style={{ margin: 0, fontSize: "16px", color: "var(--fg)" }}>Change Location</h3>
+    <div className="location-picker-overlay" onClick={onClose}>
+      <div className="location-picker-modal" onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "var(--fg)" }}>Change Location</h3>
           <button
             onClick={onClose}
             style={{ background: "transparent", border: "none", fontSize: "16px", cursor: "pointer", color: "var(--fg-muted)" }}
@@ -774,66 +751,51 @@ function LocationPickerModal({ onClose, onSelectLocation, onResetLocation }) {
           </button>
         </div>
 
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Type city name or zipcode..."
-          autoFocus
-          style={{
-            width: "100%",
-            padding: "10px 12px",
-            borderRadius: "8px",
-            border: "1px solid var(--border)",
-            background: "var(--bg)",
-            color: "var(--fg)",
-            fontSize: "14px",
-            outline: "none",
-            boxSizing: "border-box",
-          }}
-        />
+        <div className="location-search-wrapper">
+          <span className="location-search-icon">🔍</span>
+          <input
+            type="text"
+            className="location-search-input"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search city name or zipcode..."
+            autoFocus
+          />
+        </div>
 
-        <div style={{ marginTop: "12px", maxHeight: "200px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
-          {searching && <div style={{ padding: "8px", fontSize: "13px", color: "var(--fg-muted)" }}>Searching...</div>}
+        <div className="location-result-list">
+          {searching && <div style={{ padding: "12px", fontSize: "13px", color: "var(--fg-muted)", textAlign: "center" }}>Searching locations...</div>}
           {!searching && query.trim() && results.length === 0 && (
-            <div style={{ padding: "8px", fontSize: "13px", color: "var(--fg-muted)" }}>No locations found</div>
+            <div style={{ padding: "12px", fontSize: "13px", color: "var(--fg-muted)", textAlign: "center" }}>No locations found</div>
           )}
           {results.map((item, idx) => (
             <div
               key={idx}
+              className="location-result-item"
               onClick={() => {
                 onSelectLocation(item);
                 onClose();
               }}
-              style={{
-                padding: "8px 12px",
-                borderRadius: "6px",
-                cursor: "pointer",
-                fontSize: "14px",
-                color: "var(--fg)",
-                display: "flex",
-                flexDirection: "column",
-                gap: "2px",
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--border)")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              <span style={{ fontWeight: 600 }}>{item.city}</span>
-              <span style={{ fontSize: "12px", color: "var(--fg-muted)" }}>
-                {[item.region, item.country].filter(Boolean).join(", ")}
-              </span>
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                <span className="city-name">{item.city}</span>
+                <span className="region-name">
+                  {[item.region, item.country].filter(Boolean).join(", ")}
+                </span>
+              </div>
+              <span style={{ fontSize: "14px", opacity: 0.6 }}>📍</span>
             </div>
           ))}
         </div>
 
-        <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between" }}>
+        <div style={{ paddingTop: "12px", borderTop: "1px solid var(--border-light)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <button
             className="pill-btn"
             onClick={() => {
               onResetLocation();
               onClose();
             }}
-            style={{ fontSize: "12px", padding: "6px 12px", cursor: "pointer" }}
+            style={{ fontSize: "12px", padding: "6px 14px", cursor: "pointer" }}
           >
             📍 Use Auto-Location
           </button>
@@ -842,5 +804,6 @@ function LocationPickerModal({ onClose, onSelectLocation, onResetLocation }) {
     </div>
   );
 }
+
 
 
