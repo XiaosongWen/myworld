@@ -655,15 +655,13 @@ function WeatherStrip({ customLocation, onOpenLocationPicker, onLocationResolved
       }}
     >
       {items.map((day, i) => {
-        const tempVal =
-          day.temp_f != null || day.temp_c != null
-            ? `${unit === "F" ? day.temp_f : day.temp_c}°`
-            : day.temp || "—°";
+        const highVal = day.high_f != null ? (unit === "F" ? day.high_f : day.high_c) : null;
+        const lowVal = day.low_f != null ? (unit === "F" ? day.low_f : day.low_c) : null;
 
         return (
           <React.Fragment key={day.label + i}>
             <div
-              title={day.condition || ""}
+              title={day.condition ? `${day.condition} (High: ${highVal ?? "—"}°, Low: ${lowVal ?? "—"}°)` : ""}
               style={{
                 display: "flex",
                 flexDirection: "column",
@@ -683,8 +681,14 @@ function WeatherStrip({ customLocation, onOpenLocationPicker, onLocationResolved
                 {day.label}
               </span>
               <span style={{ fontSize: "16px" }}>{day.icon}</span>
-              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--fg)" }}>
-                {tempVal}
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--fg)", whiteSpace: "nowrap" }}>
+                {highVal != null && lowVal != null ? (
+                  <>
+                    {highVal}° <span style={{ fontSize: "11px", color: "var(--fg-muted)", fontWeight: 400 }}>/ {lowVal}°</span>
+                  </>
+                ) : (
+                  day.temp || "—°"
+                )}
               </span>
             </div>
             {i < items.length - 1 && (

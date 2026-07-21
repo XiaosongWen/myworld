@@ -43,7 +43,7 @@ describe("Weather API and WeatherStrip", () => {
         data: {
           location: { city: "Austin", region: "Texas", lat: 30.2672, lon: -97.7431 },
           forecast: [
-            { label: "Today", date: "2026-07-21", icon: "☀️", temp_f: 75, temp_c: 24, condition: "Sunny" },
+            { label: "Today", date: "2026-07-21", icon: "☀️", temp_f: 75, temp_c: 24, high_f: 80, high_c: 27, low_f: 70, low_c: 21, condition: "Sunny" },
           ],
         },
       },
@@ -54,7 +54,7 @@ describe("Weather API and WeatherStrip", () => {
       params: { lat: 30.2672, lon: -97.7431 },
     });
     expect(res.location.city).toBe("Austin");
-    expect(res.forecast[0].temp_f).toBe(75);
+    expect(res.forecast[0].high_f).toBe(80);
   });
 
   it("searchWeatherLocations calls /weather/locations/search endpoint", async () => {
@@ -75,7 +75,7 @@ describe("Weather API and WeatherStrip", () => {
     expect(res[0].city).toBe("Austin");
   });
 
-  it("renders resolved city location in DailyLog header and toggles forecast temperature units", async () => {
+  it("renders resolved city location in DailyLog header and displays high/low temperatures", async () => {
     client.get.mockResolvedValueOnce({
       data: {
         msg: "success",
@@ -83,8 +83,8 @@ describe("Weather API and WeatherStrip", () => {
         data: {
           location: { city: "Seattle", region: "Washington", lat: 47.6062, lon: -122.3321 },
           forecast: [
-            { label: "Today", date: "2026-07-21", icon: "☀️", temp_f: 75, temp_c: 24, condition: "Sunny" },
-            { label: "Wed", date: "2026-07-22", icon: "⛅", temp_f: 78, temp_c: 26, condition: "Partly Cloudy" },
+            { label: "Today", date: "2026-07-21", icon: "☀️", temp_f: 75, temp_c: 24, high_f: 80, high_c: 27, low_f: 70, low_c: 21, condition: "Sunny" },
+            { label: "Wed", date: "2026-07-22", icon: "⛅", temp_f: 78, temp_c: 26, high_f: 82, high_c: 28, low_f: 72, low_c: 22, condition: "Partly Cloudy" },
           ],
         },
       },
@@ -94,8 +94,10 @@ describe("Weather API and WeatherStrip", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Seattle, Washington")).toBeInTheDocument();
-      expect(screen.getByText("75°")).toBeInTheDocument();
-      expect(screen.getByText("78°")).toBeInTheDocument();
+      expect(screen.getByText("80°")).toBeInTheDocument();
+      expect(screen.getByText("/ 70°")).toBeInTheDocument();
+      expect(screen.getByText("82°")).toBeInTheDocument();
+      expect(screen.getByText("/ 72°")).toBeInTheDocument();
     });
 
     const toggleBtn = screen.getByTitle("Toggle °F / °C");
@@ -103,8 +105,10 @@ describe("Weather API and WeatherStrip", () => {
 
     fireEvent.click(toggleBtn);
 
-    expect(screen.getByText("24°")).toBeInTheDocument();
-    expect(screen.getByText("26°")).toBeInTheDocument();
+    expect(screen.getByText("27°")).toBeInTheDocument();
+    expect(screen.getByText("/ 21°")).toBeInTheDocument();
+    expect(screen.getByText("28°")).toBeInTheDocument();
+    expect(screen.getByText("/ 22°")).toBeInTheDocument();
     expect(toggleBtn).toHaveTextContent("°C");
   });
 });

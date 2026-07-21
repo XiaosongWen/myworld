@@ -25,6 +25,10 @@ class WeatherForecastItem(BaseModel):
     icon: str
     temp_f: int
     temp_c: int
+    high_f: int
+    high_c: int
+    low_f: int
+    low_c: int
     condition: str
 
 

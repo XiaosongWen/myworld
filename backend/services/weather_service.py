@@ -235,7 +235,11 @@ class WeatherService:
 
                 max_c = max_temps[i] if i < len(max_temps) else 20
                 min_c = min_temps[i] if i < len(min_temps) else 10
-                avg_c = round((max_c + min_c) / 2)
+                high_c = round(max_c)
+                low_c = round(min_c)
+                high_f = round(high_c * 9 / 5 + 32)
+                low_f = round(low_c * 9 / 5 + 32)
+                avg_c = round((high_c + low_c) / 2)
                 avg_f = round(avg_c * 9 / 5 + 32)
 
                 label = get_day_label(date_str, i)
@@ -246,6 +250,10 @@ class WeatherService:
                         icon=icon,
                         temp_f=avg_f,
                         temp_c=avg_c,
+                        high_f=high_f,
+                        high_c=high_c,
+                        low_f=low_f,
+                        low_c=low_c,
                         condition=condition,
                     )
                 )
@@ -260,10 +268,11 @@ class WeatherService:
 
         today_iso = date.today().isoformat()
         fallback_items = [
-            WeatherForecastItem(label="Today", date=today_iso, icon="⛅", temp_f=70, temp_c=21, condition="Unavailable"),
-            WeatherForecastItem(label="Day 2", date=today_iso, icon="⛅", temp_f=70, temp_c=21, condition="Unavailable"),
-            WeatherForecastItem(label="Day 3", date=today_iso, icon="⛅", temp_f=70, temp_c=21, condition="Unavailable"),
-            WeatherForecastItem(label="Day 4", date=today_iso, icon="⛅", temp_f=70, temp_c=21, condition="Unavailable"),
-            WeatherForecastItem(label="Day 5", date=today_iso, icon="⛅", temp_f=70, temp_c=21, condition="Unavailable"),
+            WeatherForecastItem(label="Today", date=today_iso, icon="⛅", temp_f=70, temp_c=21, high_f=75, high_c=24, low_f=65, low_c=18, condition="Unavailable"),
+            WeatherForecastItem(label="Day 2", date=today_iso, icon="⛅", temp_f=70, temp_c=21, high_f=75, high_c=24, low_f=65, low_c=18, condition="Unavailable"),
+            WeatherForecastItem(label="Day 3", date=today_iso, icon="⛅", temp_f=70, temp_c=21, high_f=75, high_c=24, low_f=65, low_c=18, condition="Unavailable"),
+            WeatherForecastItem(label="Day 4", date=today_iso, icon="⛅", temp_f=70, temp_c=21, high_f=75, high_c=24, low_f=65, low_c=18, condition="Unavailable"),
+            WeatherForecastItem(label="Day 5", date=today_iso, icon="⛅", temp_f=70, temp_c=21, high_f=75, high_c=24, low_f=65, low_c=18, condition="Unavailable"),
         ]
         return WeatherForecastResult(location=location, forecast=fallback_items)
+
