@@ -101,6 +101,7 @@ class WeatherService:
                             region=data.get("regionName", data.get("country", "")),
                             lat=float(data.get("lat", 41.8781)),
                             lon=float(data.get("lon", -87.6298)),
+                            timezone=data.get("timezone"),
                         )
                         _ip_location_cache = (now, loc)
                         return loc
@@ -108,7 +109,7 @@ class WeatherService:
             pass
 
         # Ultimate fallback
-        fallback = LocationInfo(city="Unknown City", region="", lat=41.8781, lon=-87.6298)
+        fallback = LocationInfo(city="Unknown City", region="", lat=41.8781, lon=-87.6298, timezone="America/Chicago")
         _ip_location_cache = (now, fallback)
         return fallback
 
@@ -147,7 +148,7 @@ class WeatherService:
             except Exception:
                 pass
 
-        # Also search Open-Meteo Geocoding API
+        # Search Open-Meteo Geocoding API
         try:
             geo_url = "https://geocoding-api.open-meteo.com/v1/search"
             params = {"name": q, "count": 5, "language": "en", "format": "json"}
@@ -155,15 +156,15 @@ class WeatherService:
                 res = await client.get(geo_url, params=params)
                 if res.status_code == 200:
                     data = res.json()
-                    geo_results = data.get("results", [])
+                    geo_results = data.get("results", []) or []
                     for item in geo_results:
                         city = item.get("name", "Unknown")
                         region = item.get("admin1", "")
                         country = item.get("country", "")
                         lat = float(item.get("latitude"))
                         lon = float(item.get("longitude"))
+                        tz = item.get("timezone")
 
-                        # Avoid exact duplicates if zip matched
                         if not any(abs(r.lat - lat) < 0.01 and abs(r.lon - lon) < 0.01 for r in results):
                             results.append(
                                 LocationSearchResult(
@@ -172,12 +173,14 @@ class WeatherService:
                                     country=country,
                                     lat=lat,
                                     lon=lon,
+                                    timezone=tz,
                                 )
                             )
         except Exception:
             pass
 
         return results
+
 
     @staticmethod
     async def get_forecast(
@@ -193,7 +196,10 @@ class WeatherService:
         if cache_key in _weather_cache:
             cached_time, cached_result = _weather_cache[cache_key]
             if now - cached_time < CACHE_TTL_SECONDS:
-                cached_result.location = location
+                if location.city:
+                    cached_result.location.city = location.city
+                if location.region:
+                    cached_result.location.region = location.region
                 return cached_result
 
         url = "https://api.open-meteo.com/v1/forecast"
@@ -210,6 +216,10 @@ class WeatherService:
                 res = await client.get(url, params=params)
                 res.raise_for_status()
                 data = res.json()
+
+            tz = data.get("timezone")
+            if tz and not location.timezone:
+                location.timezone = tz
 
             daily = data.get("daily", {})
             time_list = daily.get("time", [])

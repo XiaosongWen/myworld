@@ -59,6 +59,51 @@ function formatDateLong(date) {
   });
 }
 
+function getZonedTimeParts(date, timeZone) {
+  if (!timeZone) {
+    return {
+      hours: String(date.getHours()).padStart(2, "0"),
+      minutes: String(date.getMinutes()).padStart(2, "0"),
+      seconds: String(date.getSeconds()).padStart(2, "0"),
+      dateLong: formatDateLong(date),
+    };
+  }
+
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    const parts = formatter.formatToParts(date);
+    const p = {};
+    for (const part of parts) {
+      p[part.type] = part.value;
+    }
+
+    const hours = (p.hour === "24" ? "00" : p.hour || "00").padStart(2, "0");
+    const minutes = (p.minute || "00").padStart(2, "0");
+    const seconds = (p.second || "00").padStart(2, "0");
+    const dateLong = `${p.weekday}, ${p.month} ${p.day}, ${p.year}`;
+
+    return { hours, minutes, seconds, dateLong };
+  } catch (e) {
+    return {
+      hours: String(date.getHours()).padStart(2, "0"),
+      minutes: String(date.getMinutes()).padStart(2, "0"),
+      seconds: String(date.getSeconds()).padStart(2, "0"),
+      dateLong: formatDateLong(date),
+    };
+  }
+}
+
 export default function DailyLog() {
   const { daily, commitments, fetchDaily, fetchLabels, fetchCommitments, checkInHabit, uncheckHabit, createCommitment, updateCommitment } = usePursuitsStore();
   const now = useLiveClock();
@@ -68,6 +113,7 @@ export default function DailyLog() {
   const [selectedDetailId, setSelectedDetailId] = useState(null);
   const [quickTaskTitle, setQuickTaskTitle] = useState("");
   const [locationName, setLocationName] = useState(null);
+  const [locationTimezone, setLocationTimezone] = useState(null);
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [customLocation, setCustomLocation] = useState(() => {
     try {
@@ -97,9 +143,7 @@ export default function DailyLog() {
     setShowCreate(true);
   };
 
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const seconds = String(now.getSeconds()).padStart(2, "0");
+  const { hours, minutes, seconds, dateLong } = getZonedTimeParts(now, locationTimezone);
 
   useEffect(() => {
     fetchDaily(todayISO());
@@ -236,7 +280,7 @@ export default function DailyLog() {
                 {locationName || Intl.DateTimeFormat().resolvedOptions().timeZone?.split("/").pop()?.replace("_", " ") || "Local"}
                 <span style={{ fontSize: "12px", opacity: 0.6 }}>✏️</span>
               </span>
-              {formatDateLong(now)}
+              {dateLong}
             </div>
           </div>
         </div>
@@ -252,8 +296,14 @@ export default function DailyLog() {
                 const name = loc.region ? `${loc.city}, ${loc.region}` : loc.city;
                 setLocationName(name);
               }
+              if (loc?.timezone) {
+                setLocationTimezone(loc.timezone);
+              } else {
+                setLocationTimezone(null);
+              }
             }}
           />
+
 
 
 

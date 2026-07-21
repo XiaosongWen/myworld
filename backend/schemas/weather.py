@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 
 
 class LocationInfo(BaseModel):
@@ -7,6 +7,7 @@ class LocationInfo(BaseModel):
     region: str
     lat: float
     lon: float
+    timezone: Optional[str] = None
 
 
 class LocationSearchResult(BaseModel):
@@ -15,6 +16,7 @@ class LocationSearchResult(BaseModel):
     country: str
     lat: float
     lon: float
+    timezone: Optional[str] = None
 
 
 class WeatherForecastItem(BaseModel):
