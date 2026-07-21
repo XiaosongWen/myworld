@@ -65,6 +65,7 @@ export default function DailyLog() {
   const [editingCommitment, setEditingCommitment] = useState(null);
   const [selectedDetailId, setSelectedDetailId] = useState(null);
   const [quickTaskTitle, setQuickTaskTitle] = useState("");
+  const [locationName, setLocationName] = useState(null);
 
   const openCreateModal = (type) => {
     setCreateType(type);
@@ -203,7 +204,7 @@ export default function DailyLog() {
             </div>
             <div style={{ fontSize: "16px", fontWeight: 600, color: "var(--fg)", display: "flex", alignItems: "center", gap: "8px" }}>
               <span style={{ color: "var(--fg-muted)", fontWeight: 500 }}>
-                {Intl.DateTimeFormat().resolvedOptions().timeZone?.split("/").pop()?.replace("_", " ") || "Local"}
+                {locationName || Intl.DateTimeFormat().resolvedOptions().timeZone?.split("/").pop()?.replace("_", " ") || "Local"}
               </span>
               {formatDateLong(now)}
             </div>
@@ -213,7 +214,13 @@ export default function DailyLog() {
         {/* Weather + Progress right column */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", alignItems: "flex-end" }}>
           {/* 5-Day Weather Forecast */}
-          <WeatherStrip />
+          <WeatherStrip onLocationResolved={(loc) => {
+            if (loc?.city) {
+              const name = loc.region ? `${loc.city}, ${loc.region}` : loc.city;
+              setLocationName(name);
+            }
+          }} />
+
 
           {/* Month/Quarter/Year progress */}
           <div style={{ display: "flex", gap: "16px", background: "var(--surface)", padding: "12px 20px", borderRadius: "var(--radius-lg)", boxShadow: "0 2px 12px rgba(0,0,0,0.02)", minWidth: "320px" }}>
@@ -486,7 +493,7 @@ const PLACEHOLDER_FORECAST = [
   { label: "Fri",   icon: "☀️",  temp: "—°" },
 ];
 
-function WeatherStrip() {
+function WeatherStrip({ onLocationResolved }) {
   const [forecast, setForecast] = useState(null);
   const [unit, setUnit] = useState(() => {
     try {
@@ -510,8 +517,11 @@ function WeatherStrip() {
     const loadForecast = async (lat, lon) => {
       try {
         const res = await fetchWeatherForecast(lat, lon);
-        if (isMounted && res?.data) {
-          setForecast(res.data);
+        if (isMounted && res) {
+          if (res.forecast) setForecast(res.forecast);
+          if (res.location && onLocationResolved) {
+            onLocationResolved(res.location);
+          }
         }
       } catch (err) {
         console.error("Failed to fetch weather forecast:", err);
@@ -531,7 +541,7 @@ function WeatherStrip() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [onLocationResolved]);
 
   const items = forecast || PLACEHOLDER_FORECAST;
 

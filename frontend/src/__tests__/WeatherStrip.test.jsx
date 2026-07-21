@@ -4,7 +4,6 @@ import React from "react";
 import { fetchWeatherForecast } from "../api/weather";
 import client from "../api/client";
 import DailyLog from "../views/DailyLog";
-import usePursuitsStore from "../stores/pursuitsStore";
 
 vi.mock("../api/client", () => ({
   default: {
@@ -12,7 +11,6 @@ vi.mock("../api/client", () => ({
   },
 }));
 
-// Mock pursuitsStore to prevent unnecessary network calls during DailyLog render
 vi.mock("../stores/pursuitsStore", () => {
   return {
     default: () => ({
@@ -37,39 +35,47 @@ describe("Weather API and WeatherStrip", () => {
     }
   });
 
-  it("fetchWeatherForecast calls /weather/forecast endpoint", async () => {
+  it("fetchWeatherForecast calls /weather/forecast endpoint and returns location and forecast", async () => {
     client.get.mockResolvedValueOnce({
       data: {
         msg: "success",
         request_id: "test",
-        data: [
-          { label: "Today", date: "2026-07-21", icon: "☀️", temp_f: 75, temp_c: 24, condition: "Sunny" },
-        ],
+        data: {
+          location: { city: "Austin", region: "Texas", lat: 30.2672, lon: -97.7431 },
+          forecast: [
+            { label: "Today", date: "2026-07-21", icon: "☀️", temp_f: 75, temp_c: 24, condition: "Sunny" },
+          ],
+        },
       },
     });
 
-    const res = await fetchWeatherForecast(41.8781, -87.6298);
+    const res = await fetchWeatherForecast(30.2672, -97.7431);
     expect(client.get).toHaveBeenCalledWith("/weather/forecast", {
-      params: { lat: 41.8781, lon: -87.6298 },
+      params: { lat: 30.2672, lon: -97.7431 },
     });
-    expect(res.data[0].temp_f).toBe(75);
+    expect(res.location.city).toBe("Austin");
+    expect(res.forecast[0].temp_f).toBe(75);
   });
 
-  it("renders weather forecast strip in DailyLog and toggles units", async () => {
+  it("renders resolved city location in DailyLog header and toggles forecast temperature units", async () => {
     client.get.mockResolvedValueOnce({
       data: {
         msg: "success",
         request_id: "test",
-        data: [
-          { label: "Today", date: "2026-07-21", icon: "☀️", temp_f: 75, temp_c: 24, condition: "Sunny" },
-          { label: "Wed", date: "2026-07-22", icon: "⛅", temp_f: 78, temp_c: 26, condition: "Partly Cloudy" },
-        ],
+        data: {
+          location: { city: "Seattle", region: "Washington", lat: 47.6062, lon: -122.3321 },
+          forecast: [
+            { label: "Today", date: "2026-07-21", icon: "☀️", temp_f: 75, temp_c: 24, condition: "Sunny" },
+            { label: "Wed", date: "2026-07-22", icon: "⛅", temp_f: 78, temp_c: 26, condition: "Partly Cloudy" },
+          ],
+        },
       },
     });
 
     render(<DailyLog />);
 
     await waitFor(() => {
+      expect(screen.getByText("Seattle, Washington")).toBeInTheDocument();
       expect(screen.getByText("75°")).toBeInTheDocument();
       expect(screen.getByText("78°")).toBeInTheDocument();
     });

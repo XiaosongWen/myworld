@@ -1,19 +1,25 @@
+from typing import Optional
 from fastapi import APIRouter, Query, Request
 
-from schemas.response import ListResponse, Pagination
-from schemas.weather import WeatherForecastItem
+from schemas.response import SingleResponse
+from schemas.weather import WeatherForecastResult
 from services.weather_service import WeatherService
 
 router = APIRouter(tags=["weather"])
 
 
-@router.get("/api/v1/weather/forecast", response_model=ListResponse[WeatherForecastItem])
+@router.get("/api/v1/weather/forecast", response_model=SingleResponse[WeatherForecastResult])
 async def get_weather_forecast(
     request: Request,
-    lat: float = Query(41.8781),
-    lon: float = Query(-87.6298),
+    lat: Optional[float] = Query(None),
+    lon: Optional[float] = Query(None),
 ):
-    items = await WeatherService.get_forecast(lat=lat, lon=lon)
+    client_ip = request.headers.get("x-forwarded-for")
+    if client_ip:
+        client_ip = client_ip.split(",")[0].strip()
+    else:
+        client_ip = request.client.host if request.client else None
+
+    result = await WeatherService.get_forecast(client_ip=client_ip, lat=lat, lon=lon)
     request_id = getattr(request.state, "request_id", "UNKNOWN")
-    pagination = Pagination(page=1, page_size=len(items), total_rows=len(items))
-    return ListResponse(request_id=request_id, data=items, pagination=pagination)
+    return SingleResponse(request_id=request_id, data=result)

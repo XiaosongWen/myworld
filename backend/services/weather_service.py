@@ -1,9 +1,9 @@
 from datetime import datetime, date
 import time
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 import httpx
 
-from schemas.weather import WeatherForecastItem
+from schemas.weather import LocationInfo, WeatherForecastItem, WeatherForecastResult
 
 # WMO Weather interpretation codes (WMO 4501)
 WMO_CODE_MAP: dict[int, Tuple[str, str]] = {
@@ -38,7 +38,8 @@ WMO_CODE_MAP: dict[int, Tuple[str, str]] = {
 }
 
 CACHE_TTL_SECONDS = 900  # 15 minutes
-_weather_cache: dict[Tuple[float, float], Tuple[float, List[WeatherForecastItem]]] = {}
+_weather_cache: dict[Tuple[float, float], Tuple[float, WeatherForecastResult]] = {}
+_ip_location_cache: Tuple[float, LocationInfo] | None = None
 
 
 def get_wmo_info(code: int) -> Tuple[str, str]:
@@ -57,19 +58,82 @@ def get_day_label(date_str: str, index: int) -> str:
 
 class WeatherService:
     @staticmethod
-    async def get_forecast(lat: float = 41.8781, lon: float = -87.6298) -> List[WeatherForecastItem]:
-        cache_key = (round(lat, 2), round(lon, 2))
+    async def resolve_location(
+        client_ip: Optional[str] = None,
+        lat: Optional[float] = None,
+        lon: Optional[float] = None,
+    ) -> LocationInfo:
+        global _ip_location_cache
+        now = time.time()
+
+        # Case 1: Browser provided lat & lon -> reverse geocode
+        if lat is not None and lon is not None:
+            try:
+                url = f"https://api.bigdatacloud.net/data/reverse-geocode-client?latitude={lat}&longitude={lon}&localityLanguage=en"
+                async with httpx.AsyncClient(timeout=4.0) as client:
+                    res = await client.get(url)
+                    if res.status_code == 200:
+                        data = res.json()
+                        city = data.get("city") or data.get("locality") or data.get("localityInfo", {}).get("administrative", [{}])[0].get("name") or "Unknown City"
+                        region = data.get("principalSubdivision") or data.get("countryName") or ""
+                        return LocationInfo(city=city, region=region, lat=lat, lon=lon)
+            except Exception:
+                pass
+            return LocationInfo(city="Local Area", region="", lat=lat, lon=lon)
+
+        # Case 2: IP-based resolution (or public egress IP if client_ip is local)
+        if _ip_location_cache and (now - _ip_location_cache[0] < CACHE_TTL_SECONDS):
+            return _ip_location_cache[1]
+
+        try:
+            # http://ip-api.com/json/ auto-detects public IP
+            target_url = "http://ip-api.com/json/"
+            if client_ip and client_ip not in ("127.0.0.1", "::1", "localhost") and not client_ip.startswith("192.168."):
+                target_url = f"http://ip-api.com/json/{client_ip}"
+
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                res = await client.get(target_url)
+                if res.status_code == 200:
+                    data = res.json()
+                    if data.get("status") == "success":
+                        loc = LocationInfo(
+                            city=data.get("city", "Unknown City"),
+                            region=data.get("regionName", data.get("country", "")),
+                            lat=float(data.get("lat", 41.8781)),
+                            lon=float(data.get("lon", -87.6298)),
+                        )
+                        _ip_location_cache = (now, loc)
+                        return loc
+        except Exception:
+            pass
+
+        # Ultimate fallback if IP resolution fails
+        fallback = LocationInfo(city="Unknown City", region="", lat=41.8781, lon=-87.6298)
+        _ip_location_cache = (now, fallback)
+        return fallback
+
+    @staticmethod
+    async def get_forecast(
+        client_ip: Optional[str] = None,
+        lat: Optional[float] = None,
+        lon: Optional[float] = None,
+    ) -> WeatherForecastResult:
+        location = await WeatherService.resolve_location(client_ip=client_ip, lat=lat, lon=lon)
+
+        cache_key = (round(location.lat, 2), round(location.lon, 2))
         now = time.time()
 
         if cache_key in _weather_cache:
-            cached_time, cached_data = _weather_cache[cache_key]
+            cached_time, cached_result = _weather_cache[cache_key]
             if now - cached_time < CACHE_TTL_SECONDS:
-                return cached_data
+                # Update location city/region if newly resolved
+                cached_result.location = location
+                return cached_result
 
         url = "https://api.open-meteo.com/v1/forecast"
         params = {
-            "latitude": lat,
-            "longitude": lon,
+            "latitude": location.lat,
+            "longitude": location.lon,
             "daily": "weather_code,temperature_2m_max,temperature_2m_min",
             "forecast_days": 5,
             "timezone": "auto",
@@ -110,20 +174,21 @@ class WeatherService:
                     )
                 )
 
+            result = WeatherForecastResult(location=location, forecast=items)
             if items:
-                _weather_cache[cache_key] = (now, items)
-                return items
-        except Exception as e:
-            # If cache has expired data, return it as fallback
+                _weather_cache[cache_key] = (now, result)
+                return result
+        except Exception:
             if cache_key in _weather_cache:
                 return _weather_cache[cache_key][1]
 
-        # Ultimate fallback when fetch fails and no cache exists
+        # Fallback items
         today_iso = date.today().isoformat()
-        return [
+        fallback_items = [
             WeatherForecastItem(label="Today", date=today_iso, icon="⛅", temp_f=70, temp_c=21, condition="Unavailable"),
             WeatherForecastItem(label="Day 2", date=today_iso, icon="⛅", temp_f=70, temp_c=21, condition="Unavailable"),
             WeatherForecastItem(label="Day 3", date=today_iso, icon="⛅", temp_f=70, temp_c=21, condition="Unavailable"),
             WeatherForecastItem(label="Day 4", date=today_iso, icon="⛅", temp_f=70, temp_c=21, condition="Unavailable"),
             WeatherForecastItem(label="Day 5", date=today_iso, icon="⛅", temp_f=70, temp_c=21, condition="Unavailable"),
         ]
+        return WeatherForecastResult(location=location, forecast=fallback_items)
