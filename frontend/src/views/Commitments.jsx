@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import usePursuitsStore from "../stores/pursuitsStore";
+import LabelPill from "../components/pursuits/LabelPill";
 import HabitChecklist from "../components/pursuits/HabitChecklist";
 import GoalCard from "../components/pursuits/GoalCard";
 import TaskCard from "../components/pursuits/TaskCard";
@@ -10,7 +11,7 @@ import CommitmentDetail from "./CommitmentDetail";
 const FILTERS = ["all", "habit", "goal", "task", "list"];
 
 export default function Commitments() {
-  const { commitments, fetchCommitments, labels, fetchLabels, daily, fetchDaily, checkInHabit, uncheckHabit, loading, error } = usePursuitsStore();
+  const { commitments, labels, daily, records, fetchCommitments, fetchLabels, fetchDaily, fetchRecords, uncheckHabit, checkInHabit, loading, error } = usePursuitsStore();
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreate, setShowCreate] = useState(false);
@@ -18,21 +19,22 @@ export default function Commitments() {
   const [editingCommitment, setEditingCommitment] = useState(null);
   const [selectedDetailId, setSelectedDetailId] = useState(null);
 
-  const todayISO = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   useEffect(() => {
     fetchCommitments({ status: "active" });
     fetchLabels();
     fetchDaily(todayISO);
-  }, [fetchCommitments, fetchLabels, fetchDaily, todayISO]);
+    fetchRecords({ status: "done" });
+  }, [fetchCommitments, fetchLabels, fetchDaily, fetchRecords, todayISO]);
 
   const query = searchQuery.trim().toLowerCase();
   const filteredCommitments = commitments.filter((c) => {
     if (!query) return true;
     const matchTitle = c.title?.toLowerCase().includes(query);
     const matchLabels = (c.labels || []).some((lbl) => lbl.name?.toLowerCase().includes(query));
-    const matchLegacyTags = (c.config?.tags || []).some((t) => t.toLowerCase().includes(query));
-    return matchTitle || matchLabels || matchLegacyTags;
+    return matchTitle || matchLabels;
   });
 
   const habits = filteredCommitments.filter((c) => c.type === "habit");
@@ -101,14 +103,35 @@ export default function Commitments() {
                 icon="🔄"
                 label="Habits"
                 count={habits.length}
-                items={habits.slice(0, 3).map((h) => ({ left: h.title, right: `${h.progress?.streak ?? 0}d streak` }))}
+                items={habits.slice(0, 3).map((h) => {
+                  const streak = h.progress?.streak ?? 0;
+                  const days = streak % 7;
+                  const weeks = Math.floor(streak / 7);
+                  return {
+                    left: h.title,
+                    labels: h.labels || [],
+                    right: `🔥 ${days}d ${weeks}w`,
+                  };
+                })}
                 onClick={() => setFilter("habit")}
               />
               <SummaryCard
                 icon="🎯"
                 label="Goals"
                 count={goals.length}
-                items={goals.slice(0, 3).map((g) => ({ left: g.title, right: `${Math.round(g.progress?.percent ?? 0)}%` }))}
+                items={goals.slice(0, 3).map((g) => {
+                  const subGoals = commitments.filter((c) => c.parent_id === g.id || (c.type === "sub-goal" && c.parent_id === g.id));
+                  let percent = Math.round(g.progress?.percent ?? 0);
+                  if (subGoals.length > 0) {
+                    const doneCount = subGoals.filter((s) => s.status === "completed").length;
+                    percent = Math.round((doneCount / subGoals.length) * 100);
+                  }
+                  return {
+                    left: g.title,
+                    labels: g.labels || [],
+                    right: `${percent}%`,
+                  };
+                })}
                 onClick={() => setFilter("goal")}
               />
               <SummaryCard
@@ -117,8 +140,9 @@ export default function Commitments() {
                 count={tasks.length}
                 items={tasks.slice(0, 3).map((t) => ({
                   left: t.title,
-                  right: t.priority?.toUpperCase(),
-                  rightStyle: { color: t.priority === "high" ? "var(--danger)" : "var(--fg-muted)" },
+                  labels: t.labels || [],
+                  right: t.status === "completed" ? "Done" : (t.due_date ? new Date(t.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : (t.priority ? t.priority.toUpperCase() : "Pending")),
+                  rightStyle: { color: t.status === "completed" ? "var(--success)" : (t.priority === "high" ? "var(--danger)" : "var(--fg-muted)") },
                 }))}
                 onClick={() => setFilter("task")}
               />
@@ -137,10 +161,13 @@ export default function Commitments() {
                 habits.map((h) => {
                   const dh = daily?.habits?.find((item) => item.commitment.id === h.id);
                   const checked = !!dh?.today_record;
-                  const itemLabels = (h.labels && h.labels.length > 0)
-                    ? h.labels
-                    : (h.config?.tags || []).map((t) => labels.find((l) => l.name.toLowerCase() === t.toLowerCase()) || { id: t, name: t, color: "#3b82f6" });
+                  const itemLabels = h.labels || [];
                   const streak = h.progress?.streak ?? 0;
+                  const days = streak % 7;
+                  const weeks = Math.floor(streak / 7);
+
+                  const habitRecords = (records || []).filter((r) => r.commitment_id === h.id && r.status === "done");
+                  const checkinDates = habitRecords.map((r) => r.date);
 
                   return (
                     <div key={h.id} className="habit-item" style={{ padding: "16px 24px", display: "flex", alignItems: "center", borderBottom: "1px solid var(--border)" }}>
@@ -158,40 +185,18 @@ export default function Commitments() {
                         </span>
                       </div>
 
-                      <div style={{ flex: 1, marginLeft: 24, display: "flex", gap: 6, alignItems: "center" }}>
-                        {itemLabels.map((lbl) => {
-                          const color = lbl.color || "#3b82f6";
-                          return (
-                            <span
-                              key={lbl.id || lbl.name}
-                              style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "6px",
-                                padding: "2px 8px",
-                                borderRadius: "12px",
-                                background: `${color}18`,
-                                border: `1px solid ${color}40`,
-                                color: color,
-                                fontSize: "12px",
-                                fontWeight: "500",
-                              }}
-                            >
-                              <span style={{ width: 6, height: 6, borderRadius: "50%", background: color }} />
-                              {lbl.name}
-                            </span>
-                          );
-                        })}
+                      <div style={{ flex: 1, marginLeft: 24, display: "flex", gap: 6, alignItems: "center", overflow: "visible" }}>
+                        {itemLabels.map((lbl) => (
+                          <LabelPill key={lbl.id || lbl.name} label={lbl} compact={itemLabels.length > 2} />
+                        ))}
                       </div>
 
                       <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
-                        <InlineCalendar />
-                        <div style={{ minWidth: 140, display: "flex", justifyContent: "flex-end" }}>
-                          {streak > 0 ? (
-                            <span className="streak-badge">🔥 {streak}d streak</span>
-                          ) : (
-                            <span className="streak-badge" style={{ visibility: "hidden" }}>🔥 0d streak</span>
-                          )}
+                        <InlineCalendar checkinDates={checkinDates} />
+                        <div style={{ minWidth: 100, display: "flex", justifyContent: "flex-end" }}>
+                          <span className="streak-badge" style={{ opacity: streak > 0 ? 1 : 0.5 }}>
+                            🔥 {days}d {weeks}w
+                          </span>
                         </div>
                         <button
                           className="icon-btn"
@@ -313,9 +318,14 @@ function SummaryCard({ icon, label, count, items, onClick }) {
       </h3>
       <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13 }}>
         {items.map((item, i) => (
-          <div key={i} style={{ display: "flex", justifyContent: "space-between" }}>
-            <span>{item.left}</span>
-            <span className="text-muted" style={item.rightStyle}>{item.right}</span>
+          <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, overflow: "visible", whiteSpace: "nowrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, overflow: "visible", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{item.left}</span>
+              {(item.labels || []).map((lbl) => (
+                <LabelPill key={lbl.id || lbl.name} label={lbl} compact={(item.labels || []).length > 2} />
+              ))}
+            </div>
+            <span className="text-muted" style={{ whiteSpace: "nowrap", ...item.rightStyle }}>{item.right}</span>
           </div>
         ))}
         {count > items.length && (
@@ -331,7 +341,8 @@ function SummaryCard({ icon, label, count, items, onClick }) {
 // ── Task group view (Inbox / Today / Upcoming) ─────────────────────────
 
 function TaskGroupView({ tasks, onOpenDetail, onEdit }) {
-  const todayISO = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   const inbox = tasks.filter((t) => !t.due_date);
   const todayTasks = tasks.filter((t) => t.due_date === todayISO);
   const upcoming = tasks.filter((t) => t.due_date && t.due_date > todayISO);

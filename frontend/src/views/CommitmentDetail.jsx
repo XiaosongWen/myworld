@@ -27,9 +27,7 @@ export default function CommitmentDetail({ commitmentId, onClose, onEdit }) {
 
   const streak = commitment.progress?.streak ?? 0;
 
-  const displayLabels = (commitment.labels && commitment.labels.length > 0)
-    ? commitment.labels
-    : (commitment.config?.tags || []).map((t) => storeLabels.find((l) => l.name.toLowerCase() === t.toLowerCase()) || { id: t, name: t, color: "#3b82f6" });
+  const displayLabels = commitment.labels || [];
 
   const handleArchive = async () => {
     if (window.confirm(`Are you sure you want to archive "${commitment.title}"?`)) {
@@ -79,7 +77,6 @@ export default function CommitmentDetail({ commitmentId, onClose, onEdit }) {
               fontWeight: "500",
             }}
           >
-            <span style={{ width: 5, height: 5, borderRadius: "50%", background: color }} />
             {lbl.name}
           </span>
         </span>
@@ -103,9 +100,7 @@ export default function CommitmentDetail({ commitmentId, onClose, onEdit }) {
       });
     }
 
-    const subDisplayLabels = (sub.labels && sub.labels.length > 0)
-      ? sub.labels
-      : (sub.config?.tags || []).map((t) => storeLabels.find((l) => l.name.toLowerCase() === t.toLowerCase()) || { id: t, name: t, color: "#3b82f6" });
+    const subDisplayLabels = sub.labels || [];
 
     subDisplayLabels.forEach((lbl) => {
       const color = lbl.color || "#3b82f6";
@@ -129,7 +124,6 @@ export default function CommitmentDetail({ commitmentId, onClose, onEdit }) {
                 fontWeight: "500",
               }}
             >
-              <span style={{ width: 5, height: 5, borderRadius: "50%", background: color }} />
               {lbl.name}
             </span>
             added to sub-goal "{sub.title}"
@@ -170,21 +164,37 @@ export default function CommitmentDetail({ commitmentId, onClose, onEdit }) {
   activityEvents.sort((a, b) => b.timestamp - a.timestamp);
 
   return (
-    <div style={{
-      position: "fixed",
-      top: 0,
-      right: 0,
-      bottom: 0,
-      width: "550px",
-      backgroundColor: "var(--surface-raised)",
-      borderLeft: "1px solid var(--border)",
-      zIndex: 1000,
-      boxShadow: "-4px 0 24px rgba(0,0,0,0.15)",
-      padding: "24px",
-      overflowY: "auto",
-      display: "flex",
-      flexDirection: "column",
-    }}>
+    <>
+      {/* Backdrop overlay for closing drawer on outside click */}
+      <div
+        className="drawer-backdrop"
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0, 0, 0, 0.25)",
+          backdropFilter: "blur(2px)",
+          zIndex: 999,
+        }}
+        onClick={onClose}
+      />
+      <div style={{
+        position: "fixed",
+        top: 0,
+        right: 0,
+        bottom: 0,
+        width: "550px",
+        backgroundColor: "var(--surface-raised)",
+        borderLeft: "1px solid var(--border)",
+        zIndex: 1000,
+        boxShadow: "-4px 0 24px rgba(0,0,0,0.15)",
+        padding: "24px",
+        overflowY: "auto",
+        display: "flex",
+        flexDirection: "column",
+      }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", gap: "16px" }}>
         <h2 style={{ margin: 0, fontSize: "20px" }}>{commitment.title}</h2>
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginLeft: "auto" }}>
@@ -222,7 +232,6 @@ export default function CommitmentDetail({ commitmentId, onClose, onEdit }) {
                   fontWeight: "500",
                 }}
               >
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: color }} />
                 {lbl.name}
               </span>
             );
@@ -259,7 +268,7 @@ export default function CommitmentDetail({ commitmentId, onClose, onEdit }) {
         <div style={{ marginBottom: "24px", display: "flex", gap: "16px" }}>
           <div style={{ background: "var(--surface)", padding: "12px 16px", borderRadius: "8px", flex: 1 }}>
             <div className="text-xs text-muted">Current Streak</div>
-            <div style={{ fontSize: "18px", fontWeight: "600", color: "var(--fg)" }}>🔥 {streak} days</div>
+            <div style={{ fontSize: "18px", fontWeight: "600", color: "var(--fg)" }}>🔥 {streak % 7}d {Math.floor(streak / 7)}w</div>
           </div>
           <div style={{ background: "var(--surface)", padding: "12px 16px", borderRadius: "8px", flex: 1 }}>
             <div className="text-xs text-muted">Target / Week</div>
@@ -294,6 +303,7 @@ export default function CommitmentDetail({ commitmentId, onClose, onEdit }) {
           Archive
         </button>
       </div>
-    </div>
+      </div>
+    </>
   );
 }

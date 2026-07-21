@@ -61,7 +61,7 @@ describe("Phase 2 Integration Tests: UI-API Data Binding", () => {
     );
 
     expect(screen.getByText("Daily Meditation")).toBeInTheDocument();
-    expect(screen.getByText(/🔥 14 days/)).toBeInTheDocument();
+    expect(screen.getByText(/🔥 0d 2w/)).toBeInTheDocument();
 
     const archiveBtn = screen.getByText("Archive");
     fireEvent.click(archiveBtn);

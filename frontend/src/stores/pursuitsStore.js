@@ -2,7 +2,13 @@ import { create } from "zustand";
 import * as pursuitsApi from "../api/pursuits";
 import { fetchLabels } from "../api/labels";
 
-const today = () => new Date().toISOString().split("T")[0];
+const today = () => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const usePursuitsStore = create((set, get) => ({
   commitments: [],
@@ -139,6 +145,7 @@ const usePursuitsStore = create((set, get) => ({
       await Promise.all([
         get().fetchDaily(today()),
         get().fetchCommitments({ status: "active" }),
+        get().fetchRecords({ status: "done" }),
       ]);
       return record;
     } catch (err) {
@@ -154,6 +161,7 @@ const usePursuitsStore = create((set, get) => ({
       await Promise.all([
         get().fetchDaily(today()),
         get().fetchCommitments({ status: "active" }),
+        get().fetchRecords({ status: "done" }),
       ]);
     } catch (err) {
       set({ error: err.message });

@@ -30,7 +30,7 @@ def _compute_streak(dates: list[date], today: date | None = None) -> int:
 
     for run in reversed(runs):
         last = run[-1]
-        if last == today or last == today - timedelta(days=1):
+        if last >= today - timedelta(days=1):
             return len(run)
     return 0
 
@@ -90,7 +90,7 @@ class ProgressService:
 
     @staticmethod
     async def _batch_streak_progress(
-        db: AsyncSession, habits: list[Commitment],
+        db: AsyncSession, habits: list[Commitment], today: date | None = None,
     ) -> dict[UUID, ProgressMetrics]:
         """Single-query streak computation for all habits."""
         ids = [h.id for h in habits]
@@ -100,15 +100,15 @@ class ProgressService:
             .order_by(Record.date.asc())
         )).all()
 
-        dates_by_id: dict[UUID, list[date]] = defaultdict(list)
+        dates_by_id: dict[UUID, set[date]] = defaultdict(set)
         for row in rows:
-            dates_by_id[row.commitment_id].append(row.date)
+            dates_by_id[row.commitment_id].add(row.date)
 
-        today = date.today()
+        today_val = today or date.today()
         return {
             h.id: ProgressMetrics(
                 method='streak',
-                done=(s := _compute_streak(dates_by_id.get(h.id, []), today)),
+                done=(s := _compute_streak(sorted(list(dates_by_id.get(h.id, set()))), today_val)),
                 total=0,
                 percent=0,
                 streak=s,

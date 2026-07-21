@@ -1,20 +1,30 @@
-import React from "react";
+import React, { useMemo } from "react";
 
-export default function InlineCalendar({ days = 112 }) {
-  // Generate 112 cells (16 weeks x 7 days) matching UI-V1 buildInlineCalendars()
-  const cells = Array.from({ length: days }, (_, i) => {
-    // Deterministic pseudo-pattern based on index for demo heatmap
-    const done = (i * 7 + 3) % 10 > 3;
-    const level4 = done && (i % 3 === 0);
-    return { id: i, done, level4 };
-  });
+export default function InlineCalendar({ checkinDates = [], days = 112 }) {
+  const datesSet = useMemo(() => new Set(checkinDates), [checkinDates]);
+
+  const cells = useMemo(() => {
+    const todayDate = new Date();
+    const result = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate() - i);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const dateStr = `${year}-${month}-${day}`;
+      const done = datesSet.has(dateStr);
+      result.push({ id: dateStr, done, dateStr });
+    }
+    return result;
+  }, [days, datesSet]);
 
   return (
     <div className="inline-calendar">
       {cells.map((cell) => (
         <div
           key={cell.id}
-          className={`inline-cal-cell${cell.done ? " done" : ""}${cell.level4 ? " level-4" : ""}`}
+          className={`inline-cal-cell${cell.done ? " done" : ""}`}
+          title={`${cell.dateStr}: ${cell.done ? "Checked in" : "No check-in"}`}
         />
       ))}
     </div>

@@ -6,6 +6,8 @@ import GoalCard from "../components/pursuits/GoalCard";
 import PlannerEntry from "../components/pursuits/PlannerEntry";
 import MonthGlance from "../components/pursuits/MonthGlance";
 import CreateCommitmentModal from "../components/pursuits/CreateCommitmentModal";
+import CommitmentDetail from "./CommitmentDetail";
+import LabelPill from "../components/pursuits/LabelPill";
 
 function useLiveClock() {
   const [time, setTime] = useState(new Date());
@@ -38,7 +40,11 @@ function getQuarterProgress() {
 }
 
 function todayISO() {
-  return new Date().toISOString().split("T")[0];
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function formatDateLong(date) {
@@ -51,10 +57,12 @@ function formatDateLong(date) {
 }
 
 export default function DailyLog() {
-  const { daily, fetchDaily, checkInHabit, uncheckHabit, createRecord } = usePursuitsStore();
+  const { daily, fetchDaily, fetchLabels, checkInHabit, uncheckHabit, createRecord } = usePursuitsStore();
   const now = useLiveClock();
   const [showCreate, setShowCreate] = useState(false);
   const [createType, setCreateType] = useState("task");
+  const [editingCommitment, setEditingCommitment] = useState(null);
+  const [selectedDetailId, setSelectedDetailId] = useState(null);
 
   const openCreateModal = (type) => {
     setCreateType(type);
@@ -67,7 +75,8 @@ export default function DailyLog() {
 
   useEffect(() => {
     fetchDaily(todayISO());
-  }, [fetchDaily]);
+    fetchLabels();
+  }, [fetchDaily, fetchLabels]);
 
   const habits = daily?.habits || [];
   const tasks = daily?.tasks || [];
@@ -195,11 +204,16 @@ export default function DailyLog() {
           <div className="card">
             <h2>
               🔄 Habits{" "}
-              {habits.length > 0 && (
-                <span className="streak-badge">
-                  🔥 {habits.filter((h) => h.today_record).length}/{habits.length} done
-                </span>
-              )}
+              {habits.length > 0 && (() => {
+                const maxStreak = Math.max(...habits.map((h) => h.commitment?.progress?.streak ?? 0), 0);
+                const days = maxStreak % 7;
+                const weeks = Math.floor(maxStreak / 7);
+                return (
+                  <span className="streak-badge">
+                    🔥 {days}d {weeks}w
+                  </span>
+                );
+              })()}
             </h2>
             <div className="habit-list">
               {habits.length === 0 ? (
@@ -220,6 +234,7 @@ export default function DailyLog() {
                     onCheckIn={() =>
                       handleCheckIn(h.commitment.id, h.today_record?.id)
                     }
+                    onOpenDetail={() => setSelectedDetailId(h.commitment.id)}
                   />
                 ))
               )}
@@ -229,8 +244,8 @@ export default function DailyLog() {
           {/* Goal Progress */}
           <div className="card">
             <h2>🎯 Goal Progress</h2>
-            <div className="goal-list">
-              <GoalSummaryFromStore onOpenCreate={openCreateModal} />
+            <div className="goal-list" style={{ marginTop: "12px" }}>
+              <GoalSummaryFromStore onOpenCreate={openCreateModal} onSelectGoal={(id) => setSelectedDetailId(id)} />
             </div>
           </div>
         </div>
@@ -239,25 +254,42 @@ export default function DailyLog() {
       {/* ── Month at a Glance ── */}
       <MonthGlance habits={habits} />
 
-      {/* Create Commitment Modal */}
+      {/* Commitment Detail Side Drawer */}
+      {selectedDetailId && (
+        <CommitmentDetail
+          commitmentId={selectedDetailId}
+          onClose={() => setSelectedDetailId(null)}
+          onEdit={(g) => {
+            setSelectedDetailId(null);
+            setEditingCommitment(g);
+            setShowCreate(true);
+          }}
+        />
+      )}
+
+      {/* Create / Edit Commitment Modal */}
       {showCreate && (
         <CreateCommitmentModal
           defaultType={createType}
-          onClose={() => setShowCreate(false)}
+          commitmentToEdit={editingCommitment}
+          onClose={() => {
+            setShowCreate(false);
+            setEditingCommitment(null);
+          }}
         />
       )}
     </div>
   );
 }
 
-// A small helper that fetches goals from commitments store
-function GoalSummaryFromStore({ onOpenCreate }) {
+// A small helper that fetches goals from commitments store and renders compact normal rows
+function GoalSummaryFromStore({ onOpenCreate, onSelectGoal }) {
   const { commitments, fetchCommitments } = usePursuitsStore();
   useEffect(() => {
-    if (commitments.length === 0) fetchCommitments({ type: "goal", status: "active" });
+    if (commitments.length === 0) fetchCommitments({ root: true, status: "active" });
   }, [fetchCommitments]);
 
-  const goals = commitments.filter((c) => c.type === "goal").slice(0, 4);
+  const goals = commitments.filter((c) => c.type === "goal").slice(0, 5);
 
   if (goals.length === 0) {
     return (
@@ -270,12 +302,74 @@ function GoalSummaryFromStore({ onOpenCreate }) {
       </div>
     );
   }
-  return goals.map((g) => <GoalCard key={g.id} goal={g} />);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column" }}>
+      {goals.map((g) => {
+        const subGoals = commitments.filter(
+          (c) => c.parent_id === g.id || (c.type === "sub-goal" && c.parent_id === g.id)
+        );
+        let percent = Math.round(g.progress?.percent ?? 0);
+        if (subGoals.length > 0) {
+          const doneCount = subGoals.filter((s) => s.status === "completed").length;
+          percent = Math.round((doneCount / subGoals.length) * 100);
+        }
+
+        return (
+          <div
+            key={g.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "12px",
+              padding: "12px 16px",
+              borderBottom: "1px solid var(--border)",
+              cursor: "pointer",
+            }}
+            onClick={() => onSelectGoal?.(g.id)}
+          >
+            <span style={{ fontSize: "16px" }}>🎯</span>
+            <span style={{ fontWeight: 500, color: "var(--fg)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{g.title}</span>
+
+            {/* Labels */}
+            <div style={{ display: "flex", gap: "4px", alignItems: "center", overflow: "visible", whiteSpace: "nowrap" }}>
+              {(g.labels || []).map((lbl) => (
+                <LabelPill key={lbl.id || lbl.name} label={lbl} compact={(g.labels || []).length > 2} />
+              ))}
+            </div>
+
+            <div style={{ flex: 1 }} />
+
+            {/* Deadline */}
+            {g.due_date && (
+              <span className="text-muted" style={{ fontSize: "12px", whiteSpace: "nowrap" }}>
+                Due: {new Date(g.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              </span>
+            )}
+
+            {/* Progress bar + percent */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", width: "130px" }}>
+              <div className="progress-track" style={{ height: "6px", flex: 1, margin: 0, background: "var(--surface)" }}>
+                <div
+                  className="progress-fill"
+                  style={{
+                    width: `${percent}%`,
+                    height: "100%",
+                    background: percent >= 100 ? "var(--success)" : "var(--accent)",
+                    borderRadius: "3px",
+                    transition: "width 0.4s ease-out",
+                  }}
+                />
+              </div>
+              <span className="text-muted" style={{ fontSize: "12px", width: "32px", textAlign: "right" }}>{percent}%</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
-// ── Weather Strip ─────────────────────────────────────────────────────────
-// Placeholder data — replace with real API data once the weather backend
-// endpoint is implemented (see GitHub issue: "Weather API integration").
 const PLACEHOLDER_FORECAST = [
   { label: "Today", icon: "⛅", temp: "—°" },
   { label: "Tue",   icon: "☀️",  temp: "—°" },

@@ -17,7 +17,7 @@ describe("Pursuits Components", () => {
     );
 
     expect(screen.getByText("Read Book")).toBeInTheDocument();
-    expect(screen.getByText("🔥 5 days")).toBeInTheDocument();
+    expect(screen.getByText("🔥 5d 0w", { exact: false })).toBeInTheDocument();
 
     const checkbox = container.querySelector(".checkbox");
     fireEvent.click(checkbox);

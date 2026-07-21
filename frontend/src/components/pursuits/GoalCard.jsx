@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import LabelPill from "./LabelPill";
 import usePursuitsStore from "../../stores/pursuitsStore";
 
 export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = false }) {
@@ -69,31 +70,11 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
   return (
     <div className="card" onClick={() => onOpenDetail?.(goal.id)} style={{ cursor: onOpenDetail ? "pointer" : "default" }}>
       <div className="goal-header">
-        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-          🎯 {goal.title}
-          {(goal.labels || []).map((lbl) => {
-            const color = lbl.color || "#3b82f6";
-            return (
-              <span
-                key={lbl.id || lbl.name}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "4px",
-                  padding: "2px 8px",
-                  borderRadius: "12px",
-                  background: `${color}18`,
-                  border: `1px solid ${color}40`,
-                  color: color,
-                  fontSize: "11px",
-                  fontWeight: "500",
-                }}
-              >
-                <span style={{ width: 5, height: 5, borderRadius: "50%", background: color }} />
-                {lbl.name}
-              </span>
-            );
-          })}
+        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, overflow: "visible", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>🎯 {goal.title}</span>
+          {(goal.labels || []).map((lbl) => (
+            <LabelPill key={lbl.id || lbl.name} label={lbl} compact={(goal.labels || []).length > 2} />
+          ))}
         </h3>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span className="text-muted">{percent}%</span>
@@ -156,29 +137,9 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
                   {sub.title}
                 </span>
 
-                {(sub.labels || []).map((lbl) => {
-                  const color = lbl.color || "#3b82f6";
-                  return (
-                    <span
-                      key={lbl.id || lbl.name}
-                      style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                        padding: "1px 6px",
-                        borderRadius: "10px",
-                        background: `${color}18`,
-                        border: `1px solid ${color}40`,
-                        color: color,
-                        fontSize: "11px",
-                        fontWeight: "500",
-                      }}
-                    >
-                      <span style={{ width: 5, height: 5, borderRadius: "50%", background: color }} />
-                      {lbl.name}
-                    </span>
-                  );
-                })}
+                {(sub.labels || []).map((lbl) => (
+                  <LabelPill key={lbl.id || lbl.name} label={lbl} compact={(sub.labels || []).length > 2} />
+                ))}
 
                 <div style={{ flex: 1 }} />
 

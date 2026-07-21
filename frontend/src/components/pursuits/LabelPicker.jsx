@@ -122,7 +122,6 @@ export default function LabelPicker({ selectedLabels = [], onChange }) {
                 fontWeight: "500",
               }}
             >
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: color }} />
               {tag}
               <button
                 type="button"
