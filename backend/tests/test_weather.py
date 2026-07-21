@@ -41,6 +41,21 @@ async def test_weather_forecast_endpoint_with_lat_lon():
         assert location["lon"] == -97.7431
 
 
+@pytest.mark.asyncio
+async def test_search_weather_locations():
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+        response = await ac.get("/api/v1/weather/locations/search?q=Seattle")
+        assert response.status_code == 200
+        json_data = response.json()
+        assert json_data["msg"] == "success"
+        assert isinstance(json_data["data"], list)
+        if len(json_data["data"]) > 0:
+            item = json_data["data"][0]
+            assert "city" in item
+            assert "lat" in item
+            assert "lon" in item
+
+
 def test_wmo_code_mapping():
     icon, condition = get_wmo_info(0)
     assert icon == "☀️"

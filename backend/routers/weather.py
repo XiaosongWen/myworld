@@ -1,8 +1,8 @@
 from typing import Optional
 from fastapi import APIRouter, Query, Request
 
-from schemas.response import SingleResponse
-from schemas.weather import WeatherForecastResult
+from schemas.response import ListResponse, Pagination, SingleResponse
+from schemas.weather import LocationSearchResult, WeatherForecastResult
 from services.weather_service import WeatherService
 
 router = APIRouter(tags=["weather"])
@@ -23,3 +23,14 @@ async def get_weather_forecast(
     result = await WeatherService.get_forecast(client_ip=client_ip, lat=lat, lon=lon)
     request_id = getattr(request.state, "request_id", "UNKNOWN")
     return SingleResponse(request_id=request_id, data=result)
+
+
+@router.get("/api/v1/weather/locations/search", response_model=ListResponse[LocationSearchResult])
+async def search_weather_locations(
+    request: Request,
+    q: str = Query(..., min_length=1),
+):
+    results = await WeatherService.search_locations(query=q)
+    request_id = getattr(request.state, "request_id", "UNKNOWN")
+    pagination = Pagination(page=1, page_size=len(results), total_rows=len(results))
+    return ListResponse(request_id=request_id, data=results, pagination=pagination)

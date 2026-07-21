@@ -6,8 +6,8 @@ import GoalCard from "../components/pursuits/GoalCard";
 import MonthGlance from "../components/pursuits/MonthGlance";
 import CreateCommitmentModal from "../components/pursuits/CreateCommitmentModal";
 import CommitmentDetail from "./CommitmentDetail";
-import LabelPill from "../components/pursuits/LabelPill";
-import { fetchWeatherForecast } from "../api/weather";
+import { fetchWeatherForecast, searchWeatherLocations } from "../api/weather";
+
 
 
 function useLiveClock() {
@@ -66,6 +66,29 @@ export default function DailyLog() {
   const [selectedDetailId, setSelectedDetailId] = useState(null);
   const [quickTaskTitle, setQuickTaskTitle] = useState("");
   const [locationName, setLocationName] = useState(null);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [customLocation, setCustomLocation] = useState(() => {
+    try {
+      const saved = localStorage.getItem("custom_weather_location");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const handleSelectCustomLocation = (loc) => {
+    setCustomLocation(loc);
+    try {
+      localStorage.setItem("custom_weather_location", JSON.stringify(loc));
+    } catch (_) {}
+  };
+
+  const handleResetLocation = () => {
+    setCustomLocation(null);
+    try {
+      localStorage.removeItem("custom_weather_location");
+    } catch (_) {}
+  };
 
   const openCreateModal = (type) => {
     setCreateType(type);
@@ -203,8 +226,13 @@ export default function DailyLog() {
               </div>
             </div>
             <div style={{ fontSize: "16px", fontWeight: 600, color: "var(--fg)", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ color: "var(--fg-muted)", fontWeight: 500 }}>
+              <span
+                style={{ color: "var(--fg-muted)", fontWeight: 500, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                onClick={() => setShowLocationPicker(true)}
+                title="Click to change city or zipcode"
+              >
                 {locationName || Intl.DateTimeFormat().resolvedOptions().timeZone?.split("/").pop()?.replace("_", " ") || "Local"}
+                <span style={{ fontSize: "12px", opacity: 0.6 }}>✏️</span>
               </span>
               {formatDateLong(now)}
             </div>
@@ -214,12 +242,17 @@ export default function DailyLog() {
         {/* Weather + Progress right column */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", alignItems: "flex-end" }}>
           {/* 5-Day Weather Forecast */}
-          <WeatherStrip onLocationResolved={(loc) => {
-            if (loc?.city) {
-              const name = loc.region ? `${loc.city}, ${loc.region}` : loc.city;
-              setLocationName(name);
-            }
-          }} />
+          <WeatherStrip
+            customLocation={customLocation}
+            onOpenLocationPicker={() => setShowLocationPicker(true)}
+            onLocationResolved={(loc) => {
+              if (loc?.city) {
+                const name = loc.region ? `${loc.city}, ${loc.region}` : loc.city;
+                setLocationName(name);
+              }
+            }}
+          />
+
 
 
           {/* Month/Quarter/Year progress */}
@@ -393,6 +426,15 @@ export default function DailyLog() {
           }}
         />
       )}
+
+      {/* Location Picker Modal */}
+      {showLocationPicker && (
+        <LocationPickerModal
+          onClose={() => setShowLocationPicker(false)}
+          onSelectLocation={handleSelectCustomLocation}
+          onResetLocation={handleResetLocation}
+        />
+      )}
     </div>
   );
 }
@@ -493,7 +535,7 @@ const PLACEHOLDER_FORECAST = [
   { label: "Fri",   icon: "☀️",  temp: "—°" },
 ];
 
-function WeatherStrip({ onLocationResolved }) {
+function WeatherStrip({ customLocation, onOpenLocationPicker, onLocationResolved }) {
   const [forecast, setForecast] = useState(null);
   const [unit, setUnit] = useState(() => {
     try {
@@ -528,7 +570,9 @@ function WeatherStrip({ onLocationResolved }) {
       }
     };
 
-    if ("geolocation" in navigator && typeof navigator.geolocation.getCurrentPosition === "function") {
+    if (customLocation?.lat != null && customLocation?.lon != null) {
+      loadForecast(customLocation.lat, customLocation.lon);
+    } else if ("geolocation" in navigator && typeof navigator.geolocation.getCurrentPosition === "function") {
       navigator.geolocation.getCurrentPosition(
         (pos) => loadForecast(pos.coords.latitude, pos.coords.longitude),
         () => loadForecast(),
@@ -541,7 +585,7 @@ function WeatherStrip({ onLocationResolved }) {
     return () => {
       isMounted = false;
     };
-  }, [onLocationResolved]);
+  }, [customLocation, onLocationResolved]);
 
   const items = forecast || PLACEHOLDER_FORECAST;
 
@@ -617,4 +661,134 @@ function WeatherStrip({ onLocationResolved }) {
     </div>
   );
 }
+
+function LocationPickerModal({ onClose, onSelectLocation, onResetLocation }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await searchWeatherLocations(query);
+        setResults(res);
+      } catch (err) {
+        console.error("Search failed:", err);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  return (
+    <div
+      className="modal-backdrop"
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.4)",
+        zIndex: 1000,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        className="modal-content"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "var(--surface)",
+          padding: "20px",
+          borderRadius: "12px",
+          width: "360px",
+          maxWidth: "90vw",
+          boxShadow: "0 8px 30px rgba(0,0,0,0.15)",
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+          <h3 style={{ margin: 0, fontSize: "16px", color: "var(--fg)" }}>Change Location</h3>
+          <button
+            onClick={onClose}
+            style={{ background: "transparent", border: "none", fontSize: "16px", cursor: "pointer", color: "var(--fg-muted)" }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Type city name or zipcode..."
+          autoFocus
+          style={{
+            width: "100%",
+            padding: "10px 12px",
+            borderRadius: "8px",
+            border: "1px solid var(--border)",
+            background: "var(--bg)",
+            color: "var(--fg)",
+            fontSize: "14px",
+            outline: "none",
+            boxSizing: "border-box",
+          }}
+        />
+
+        <div style={{ marginTop: "12px", maxHeight: "200px", overflowY: "auto", display: "flex", flexDirection: "column", gap: "4px" }}>
+          {searching && <div style={{ padding: "8px", fontSize: "13px", color: "var(--fg-muted)" }}>Searching...</div>}
+          {!searching && query.trim() && results.length === 0 && (
+            <div style={{ padding: "8px", fontSize: "13px", color: "var(--fg-muted)" }}>No locations found</div>
+          )}
+          {results.map((item, idx) => (
+            <div
+              key={idx}
+              onClick={() => {
+                onSelectLocation(item);
+                onClose();
+              }}
+              style={{
+                padding: "8px 12px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                fontSize: "14px",
+                color: "var(--fg)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "2px",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--border)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            >
+              <span style={{ fontWeight: 600 }}>{item.city}</span>
+              <span style={{ fontSize: "12px", color: "var(--fg-muted)" }}>
+                {[item.region, item.country].filter(Boolean).join(", ")}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ marginTop: "16px", paddingTop: "12px", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between" }}>
+          <button
+            className="pill-btn"
+            onClick={() => {
+              onResetLocation();
+              onClose();
+            }}
+            style={{ fontSize: "12px", padding: "6px 12px", cursor: "pointer" }}
+          >
+            📍 Use Auto-Location
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 

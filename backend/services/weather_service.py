@@ -1,9 +1,10 @@
 from datetime import datetime, date
+import re
 import time
 from typing import List, Optional, Tuple
 import httpx
 
-from schemas.weather import LocationInfo, WeatherForecastItem, WeatherForecastResult
+from schemas.weather import LocationInfo, LocationSearchResult, WeatherForecastItem, WeatherForecastResult
 
 # WMO Weather interpretation codes (WMO 4501)
 WMO_CODE_MAP: dict[int, Tuple[str, str]] = {
@@ -66,7 +67,7 @@ class WeatherService:
         global _ip_location_cache
         now = time.time()
 
-        # Case 1: Browser provided lat & lon -> reverse geocode
+        # Case 1: Browser or user provided lat & lon -> reverse geocode
         if lat is not None and lon is not None:
             try:
                 url = f"https://api.bigdatacloud.net/data/reverse-geocode-client?latitude={lat}&longitude={lon}&localityLanguage=en"
@@ -86,7 +87,6 @@ class WeatherService:
             return _ip_location_cache[1]
 
         try:
-            # http://ip-api.com/json/ auto-detects public IP
             target_url = "http://ip-api.com/json/"
             if client_ip and client_ip not in ("127.0.0.1", "::1", "localhost") and not client_ip.startswith("192.168."):
                 target_url = f"http://ip-api.com/json/{client_ip}"
@@ -107,10 +107,77 @@ class WeatherService:
         except Exception:
             pass
 
-        # Ultimate fallback if IP resolution fails
+        # Ultimate fallback
         fallback = LocationInfo(city="Unknown City", region="", lat=41.8781, lon=-87.6298)
         _ip_location_cache = (now, fallback)
         return fallback
+
+    @staticmethod
+    async def search_locations(query: str) -> List[LocationSearchResult]:
+        q = query.strip()
+        if not q:
+            return []
+
+        results: List[LocationSearchResult] = []
+
+        # Check if 5-digit US zipcode
+        if re.match(r"^\d{5}$", q):
+            try:
+                zip_url = f"http://api.zippopotam.us/us/{q}"
+                async with httpx.AsyncClient(timeout=4.0) as client:
+                    res = await client.get(zip_url)
+                    if res.status_code == 200:
+                        data = res.json()
+                        places = data.get("places", [])
+                        if places:
+                            place = places[0]
+                            city = place.get("place name", q)
+                            region = place.get("state", "US")
+                            lat = float(place.get("latitude"))
+                            lon = float(place.get("longitude"))
+                            results.append(
+                                LocationSearchResult(
+                                    city=city,
+                                    region=region,
+                                    country="United States",
+                                    lat=lat,
+                                    lon=lon,
+                                )
+                            )
+            except Exception:
+                pass
+
+        # Also search Open-Meteo Geocoding API
+        try:
+            geo_url = "https://geocoding-api.open-meteo.com/v1/search"
+            params = {"name": q, "count": 5, "language": "en", "format": "json"}
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                res = await client.get(geo_url, params=params)
+                if res.status_code == 200:
+                    data = res.json()
+                    geo_results = data.get("results", [])
+                    for item in geo_results:
+                        city = item.get("name", "Unknown")
+                        region = item.get("admin1", "")
+                        country = item.get("country", "")
+                        lat = float(item.get("latitude"))
+                        lon = float(item.get("longitude"))
+
+                        # Avoid exact duplicates if zip matched
+                        if not any(abs(r.lat - lat) < 0.01 and abs(r.lon - lon) < 0.01 for r in results):
+                            results.append(
+                                LocationSearchResult(
+                                    city=city,
+                                    region=region,
+                                    country=country,
+                                    lat=lat,
+                                    lon=lon,
+                                )
+                            )
+        except Exception:
+            pass
+
+        return results
 
     @staticmethod
     async def get_forecast(
@@ -126,7 +193,6 @@ class WeatherService:
         if cache_key in _weather_cache:
             cached_time, cached_result = _weather_cache[cache_key]
             if now - cached_time < CACHE_TTL_SECONDS:
-                # Update location city/region if newly resolved
                 cached_result.location = location
                 return cached_result
 
@@ -182,7 +248,6 @@ class WeatherService:
             if cache_key in _weather_cache:
                 return _weather_cache[cache_key][1]
 
-        # Fallback items
         today_iso = date.today().isoformat()
         fallback_items = [
             WeatherForecastItem(label="Today", date=today_iso, icon="⛅", temp_f=70, temp_c=21, condition="Unavailable"),

@@ -9,6 +9,14 @@ class LocationInfo(BaseModel):
     lon: float
 
 
+class LocationSearchResult(BaseModel):
+    city: str
+    region: str
+    country: str
+    lat: float
+    lon: float
+
+
 class WeatherForecastItem(BaseModel):
     label: str
     date: str

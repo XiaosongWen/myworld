@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import React from "react";
-import { fetchWeatherForecast } from "../api/weather";
+import { fetchWeatherForecast, searchWeatherLocations } from "../api/weather";
 import client from "../api/client";
 import DailyLog from "../views/DailyLog";
 
@@ -55,6 +55,24 @@ describe("Weather API and WeatherStrip", () => {
     });
     expect(res.location.city).toBe("Austin");
     expect(res.forecast[0].temp_f).toBe(75);
+  });
+
+  it("searchWeatherLocations calls /weather/locations/search endpoint", async () => {
+    client.get.mockResolvedValueOnce({
+      data: {
+        msg: "success",
+        request_id: "test",
+        data: [
+          { city: "Austin", region: "Texas", country: "United States", lat: 30.2672, lon: -97.7431 },
+        ],
+      },
+    });
+
+    const res = await searchWeatherLocations("78701");
+    expect(client.get).toHaveBeenCalledWith("/weather/locations/search", {
+      params: { q: "78701" },
+    });
+    expect(res[0].city).toBe("Austin");
   });
 
   it("renders resolved city location in DailyLog header and toggles forecast temperature units", async () => {
