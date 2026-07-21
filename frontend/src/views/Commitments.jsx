@@ -132,16 +132,19 @@ export default function Commitments() {
                 icon="🔄"
                 label="Habits"
                 count={habits.length}
-                items={habits.slice(0, 5).map((h) => {
-                  const streak = h.progress?.streak ?? 0;
-                  const days = streak % 7;
-                  const weeks = Math.floor(streak / 7);
-                  return {
-                    left: h.title,
-                    labels: h.labels || [],
-                    right: `🔥 ${days}d ${weeks}w`,
-                  };
-                })}
+                items={[...habits]
+                  .sort((a, b) => (b.progress?.streak ?? 0) - (a.progress?.streak ?? 0))
+                  .slice(0, 5)
+                  .map((h) => {
+                    const streak = h.progress?.streak ?? 0;
+                    const days = streak % 7;
+                    const weeks = Math.floor(streak / 7);
+                    return {
+                      left: h.title,
+                      labels: h.labels || [],
+                      right: `🔥 ${days}d ${weeks}w`,
+                    };
+                  })}
                 onClick={() => handleSetFilter("habit")}
               />
               <SummaryCard
@@ -227,7 +230,9 @@ export default function Commitments() {
               {habits.length === 0 ? (
                 <p className="text-muted text-sm" style={{ padding: 24 }}>No habits yet.</p>
               ) : (
-                habits.map((h) => {
+                [...habits]
+                  .sort((a, b) => (b.progress?.streak ?? 0) - (a.progress?.streak ?? 0))
+                  .map((h) => {
                   const dh = daily?.habits?.find((item) => item.commitment.id === h.id);
                   const checked = !!dh?.today_record;
                   const itemLabels = h.labels || [];

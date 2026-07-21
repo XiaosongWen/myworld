@@ -3,7 +3,6 @@ import usePursuitsStore from "../stores/pursuitsStore";
 import HabitChecklist from "../components/pursuits/HabitChecklist";
 import TaskCard from "../components/pursuits/TaskCard";
 import GoalCard from "../components/pursuits/GoalCard";
-import PlannerEntry from "../components/pursuits/PlannerEntry";
 import MonthGlance from "../components/pursuits/MonthGlance";
 import CreateCommitmentModal from "../components/pursuits/CreateCommitmentModal";
 import CommitmentDetail from "./CommitmentDetail";
@@ -57,12 +56,13 @@ function formatDateLong(date) {
 }
 
 export default function DailyLog() {
-  const { daily, fetchDaily, fetchLabels, checkInHabit, uncheckHabit, createRecord } = usePursuitsStore();
+  const { daily, commitments, fetchDaily, fetchLabels, fetchCommitments, checkInHabit, uncheckHabit, createCommitment, updateCommitment } = usePursuitsStore();
   const now = useLiveClock();
   const [showCreate, setShowCreate] = useState(false);
   const [createType, setCreateType] = useState("task");
   const [editingCommitment, setEditingCommitment] = useState(null);
   const [selectedDetailId, setSelectedDetailId] = useState(null);
+  const [quickTaskTitle, setQuickTaskTitle] = useState("");
 
   const openCreateModal = (type) => {
     setCreateType(type);
@@ -76,11 +76,81 @@ export default function DailyLog() {
   useEffect(() => {
     fetchDaily(todayISO());
     fetchLabels();
-  }, [fetchDaily, fetchLabels]);
+    fetchCommitments();
+  }, [fetchDaily, fetchLabels, fetchCommitments]);
 
-  const habits = daily?.habits || [];
-  const tasks = daily?.tasks || [];
+  const habits = [...(daily?.habits || [])].sort(
+    (a, b) => (b.commitment?.progress?.streak ?? 0) - (a.commitment?.progress?.streak ?? 0)
+  );
+  const PRIORITY_WEIGHT = { high: 3, medium: 2, med: 2, low: 1, none: 0 };
+  const pendingTasks = (daily?.tasks || [])
+    .filter((t) => t.status !== "completed")
+    .sort((a, b) => {
+      const weightA = PRIORITY_WEIGHT[a.priority?.toLowerCase()] ?? 0;
+      const weightB = PRIORITY_WEIGHT[b.priority?.toLowerCase()] ?? 0;
+      if (weightB !== weightA) return weightB - weightA;
+      return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+    });
   const freeRecords = daily?.free_records || [];
+
+  const isToday = (dateStr) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return false;
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return iso === todayISO();
+  };
+
+  // Build timeline events for today
+  const timelineEvents = [];
+
+  freeRecords.forEach((r) => {
+    timelineEvents.push({
+      id: `rec-${r.id}`,
+      time: r.created_at || r.updated_at || new Date().toISOString(),
+      icon: "📝",
+      text: r.content,
+      type: "log",
+    });
+  });
+
+  habits.forEach((h) => {
+    if (h.today_record) {
+      timelineEvents.push({
+        id: `habit-${h.commitment.id}`,
+        time: h.today_record.created_at || new Date().toISOString(),
+        icon: "🔄",
+        text: `Checked in habit "${h.commitment.title}"`,
+        type: "habit",
+      });
+    }
+  });
+
+  (commitments || []).forEach((c) => {
+    if (isToday(c.created_at)) {
+      timelineEvents.push({
+        id: `create-${c.id}`,
+        time: c.created_at,
+        icon: "✨",
+        text: `Created ${c.type}: "${c.title}"`,
+        type: "create",
+      });
+    }
+  });
+
+  (commitments || []).forEach((c) => {
+    if (c.status === "completed" && isToday(c.updated_at || c.completed_at)) {
+      timelineEvents.push({
+        id: `done-${c.id}`,
+        time: c.updated_at || c.completed_at,
+        icon: "✅",
+        text: `Completed ${c.type}: "${c.title}"`,
+        type: "done",
+      });
+    }
+  });
+
+  timelineEvents.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
   const monthPct = getMonthProgress();
   const quarterPct = getQuarterProgress();
@@ -94,9 +164,25 @@ export default function DailyLog() {
     }
   }, [checkInHabit, uncheckHabit]);
 
-  const handleCreateRecord = useCallback((content) => {
-    createRecord({ content, status: "done" });
-  }, [createRecord]);
+  const handleQuickAddTask = async (e) => {
+    if (e.key === "Enter" && quickTaskTitle.trim()) {
+      e.preventDefault();
+      const text = quickTaskTitle.trim();
+      setQuickTaskTitle("");
+      try {
+        await createCommitment({
+          title: text,
+          type: "task",
+          priority: "none",
+          due_date: todayISO(),
+          status: "active",
+        });
+        fetchDaily(todayISO());
+      } catch (err) {
+        console.error("Failed to add task due today:", err);
+      }
+    }
+  };
 
   return (
     <div className="view active" id="dashboard">
@@ -157,9 +243,9 @@ export default function DailyLog() {
         <div className="col-left" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
           {/* Today's Tasks */}
           <div className="card">
-            <h2>📋 Today's Tasks <a href="/commitments" className="text-sm text-muted" style={{ textDecoration: "none", fontWeight: "normal" }}>View All →</a></h2>
+            <h2>📋 Today's Tasks <a href="/commitments/tasks" className="text-sm text-muted" style={{ textDecoration: "none", fontWeight: "normal" }}>View All →</a></h2>
             <div className="task-list">
-              {tasks.length === 0 ? (
+              {pendingTasks.length === 0 ? (
                 <div className="empty-card-state">
                   <span className="empty-icon">🌴</span>
                   <span className="empty-text">No tasks due today</span>
@@ -168,33 +254,53 @@ export default function DailyLog() {
                   </button>
                 </div>
               ) : (
-                tasks.map((t) => (
-                  <TaskCard key={t.id} task={t} onToggleStatus={() => {}} />
+                pendingTasks.map((t) => (
+                  <TaskCard
+                    key={t.id}
+                    task={t}
+                    onToggleStatus={() => updateCommitment(t.id, { status: t.status === "completed" ? "active" : "completed" })}
+                    onOpenDetail={(id) => setSelectedDetailId(id)}
+                  />
                 ))
               )}
+              <div className="input-bar" style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
+                <span style={{ opacity: 0.5 }}>+</span>
+                <input
+                  type="text"
+                  value={quickTaskTitle}
+                  onChange={(e) => setQuickTaskTitle(e.target.value)}
+                  onKeyDown={handleQuickAddTask}
+                  placeholder="Quick add task..."
+                  style={{ border: "none", background: "transparent", width: "100%", outline: "none", fontSize: 14, color: "var(--fg)" }}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Daily Log */}
+          {/* Daily Log Timeline */}
           <div className="card">
-            <h2>📝 Daily Log</h2>
+            <h2>📝 Daily Log Timeline</h2>
             <div className="log-list">
-              {freeRecords.length === 0 ? (
+              {timelineEvents.length === 0 ? (
                 <p className="text-muted text-sm mb-2" style={{ fontStyle: "italic", opacity: 0.8 }}>
-                  No log entries yet. Record what you accomplish today below:
+                  No activity logged yet today.
                 </p>
               ) : (
-                freeRecords.map((r) => (
-                  <div key={r.id} className="log-item">
-                    {r.content?.match(/^\d{2}:\d{2}/) && (
-                      <span className="log-time">{r.content.slice(0, 5)}</span>
-                    )}
-                    <span>{r.content?.replace(/^\d{2}:\d{2}\s*/, "")}</span>
-                  </div>
-                ))
+                timelineEvents.map((ev) => {
+                  const tDate = new Date(ev.time);
+                  const timeStr = isNaN(tDate.getTime())
+                    ? ""
+                    : tDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", hour12: false });
+                  return (
+                    <div key={ev.id} className="log-item" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span className="log-time" style={{ minWidth: 42, opacity: 0.7 }}>{timeStr}</span>
+                      <span style={{ fontSize: 14 }}>{ev.icon}</span>
+                      <span style={{ flex: 1 }}>{ev.text}</span>
+                    </div>
+                  );
+                })
               )}
             </div>
-            <PlannerEntry onSubmitRecord={handleCreateRecord} />
           </div>
         </div>
 
