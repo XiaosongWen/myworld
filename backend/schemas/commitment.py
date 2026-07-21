@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any, List
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+from schemas.label import LabelResponse
 
 
 class CommitmentBase(BaseModel):
@@ -17,7 +18,8 @@ class CommitmentBase(BaseModel):
 
 
 class CommitmentCreate(CommitmentBase):
-    pass
+    parent_id: Optional[UUID] = None
+    label_ids: Optional[List[UUID]] = Field(default_factory=list)
 
 
 class CommitmentUpdate(BaseModel):
@@ -29,6 +31,7 @@ class CommitmentUpdate(BaseModel):
     config: Optional[Dict[str, Any]] = None
     due_date: Optional[date] = None
     sort_order: Optional[int] = None
+    label_ids: Optional[List[UUID]] = None
 
 
 class ProgressMetrics(BaseModel):
@@ -44,6 +47,8 @@ class CommitmentRead(CommitmentBase):
     user_id: int
     created_at: datetime
     updated_at: datetime
+    parent_id: Optional[UUID] = None
+    labels: List[LabelResponse] = Field(default_factory=list)
     
     progress: Optional[ProgressMetrics] = None
 

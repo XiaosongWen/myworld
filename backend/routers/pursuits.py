@@ -219,6 +219,9 @@ async def get_daily(
     else:
         habit_progress = {}
 
+    for h in habits:
+        h.progress = habit_progress.get(h.id)
+
     # 3. Single query for ALL today's records (replaces N per-habit queries + free-records query)
     all_today_records = await RecordService.get_records(db, date_from=target_date, date_to=target_date)
 
@@ -227,15 +230,15 @@ async def get_daily(
     for r in all_today_records:
         records_by_commitment[r.commitment_id].append(r)
 
-    daily_habits = [
-        DailyHabitCheckin(
-            commitment=h,
-            today_record=(recs := records_by_commitment.get(h.id))[0] if recs else None,
-        )
-        for h in habits
-    ]
+    daily_habits = []
     for h in habits:
-        h.progress = habit_progress.get(h.id)
+        recs = records_by_commitment.get(h.id)
+        daily_habits.append(
+            DailyHabitCheckin(
+                commitment=h,
+                today_record=recs[0] if recs else None,
+            )
+        )
 
     # 4. Today's tasks
     tasks = await CommitmentService.list_commitments(db, USER_ID, type_="task")
