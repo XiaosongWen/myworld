@@ -5,6 +5,7 @@ import HabitChecklist from "../components/pursuits/HabitChecklist";
 import GoalCard from "../components/pursuits/GoalCard";
 import TaskCard from "../components/pursuits/TaskCard";
 import PlannerEntry from "../components/pursuits/PlannerEntry";
+import usePursuitsStore from "../stores/pursuitsStore";
 
 describe("Pursuits Components", () => {
   it("renders HabitChecklist and handles check-in", () => {
@@ -23,11 +24,24 @@ describe("Pursuits Components", () => {
     expect(onCheckIn).toHaveBeenCalledWith(1);
   });
 
-  it("renders GoalCard with correct progress from API shape", () => {
-    const goal = { id: 1, title: "Lose Weight", progress: { percent: 50, done: 10, total: 20, method: "count" } };
-    render(<GoalCard goal={goal} />);
+  it("renders GoalCard with correct progress and sub-goals", () => {
+    const goal = {
+      id: "g-1",
+      title: "Lose Weight",
+      progress: { percent: 50 },
+    };
+    usePursuitsStore.setState({
+      commitments: [
+        goal,
+        { id: "s-1", parent_id: "g-1", title: "Exercise daily", type: "sub-goal", status: "completed" },
+        { id: "s-2", parent_id: "g-1", title: "Eat healthy", type: "sub-goal", status: "active" },
+      ],
+    });
+    render(<GoalCard goal={goal} showSubGoals />);
     expect(screen.getByText("Lose Weight", { exact: false })).toBeInTheDocument();
     expect(screen.getByText("50%")).toBeInTheDocument();
+    expect(screen.getByText("Exercise daily")).toBeInTheDocument();
+    expect(screen.getByText("Eat healthy")).toBeInTheDocument();
   });
 
   it("renders TaskCard and handles toggle", () => {

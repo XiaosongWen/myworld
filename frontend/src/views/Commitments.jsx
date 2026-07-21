@@ -30,8 +30,9 @@ export default function Commitments() {
   const filteredCommitments = commitments.filter((c) => {
     if (!query) return true;
     const matchTitle = c.title?.toLowerCase().includes(query);
-    const matchTags = (c.config?.tags || []).some((t) => t.toLowerCase().includes(query));
-    return matchTitle || matchTags;
+    const matchLabels = (c.labels || []).some((lbl) => lbl.name?.toLowerCase().includes(query));
+    const matchLegacyTags = (c.config?.tags || []).some((t) => t.toLowerCase().includes(query));
+    return matchTitle || matchLabels || matchLegacyTags;
   });
 
   const habits = filteredCommitments.filter((c) => c.type === "habit");
@@ -91,51 +92,35 @@ export default function Commitments() {
       {loading && <div className="text-muted text-sm" style={{ marginTop: 16 }}>Loading...</div>}
       {error && <div style={{ color: "var(--danger)", marginTop: 16 }}>{error}</div>}
 
-      <div className="pursuits-content">
-        {/* ALL overview */}
+      <div className="content-container">
+        {/* ALL SUMMARY */}
         {filter === "all" && (
-          <div>
-            <div className="section-header">All Commitments Overview</div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "24px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 24 }}>
               <SummaryCard
-                icon="🔄" label="Habits" count={habits.length}
+                icon="🔄"
+                label="Habits"
+                count={habits.length}
+                items={habits.slice(0, 3).map((h) => ({ left: h.title, right: `${h.progress?.streak ?? 0}d streak` }))}
                 onClick={() => setFilter("habit")}
-                items={habits.slice(0, 4).map((h) => {
-                  const dh = daily?.habits?.find((item) => item.commitment.id === h.id);
-                  const isDone = !!dh?.today_record;
-                  return {
-                    left: h.title,
-                    right: isDone ? "✓ Done" : h.progress?.streak ? `🔥 ${h.progress.streak}d` : "—",
-                    rightStyle: isDone ? { color: "var(--success)", fontWeight: 600 } : undefined,
-                  };
-                })}
               />
               <SummaryCard
-                icon="🎯" label="Goals" count={goals.length}
+                icon="🎯"
+                label="Goals"
+                count={goals.length}
+                items={goals.slice(0, 3).map((g) => ({ left: g.title, right: `${Math.round(g.progress?.percent ?? 0)}%` }))}
                 onClick={() => setFilter("goal")}
-                items={goals.slice(0, 4).map((g) => ({
-                  left: g.title,
-                  right: `${Math.round(g.progress?.percent ?? 0)}%`,
-                  rightStyle: { color: "var(--success)" },
-                }))}
               />
               <SummaryCard
-                icon="📋" label="Tasks" count={tasks.length}
-                onClick={() => setFilter("task")}
-                items={tasks.slice(0, 4).map((t) => ({
+                icon="📋"
+                label="Tasks"
+                count={tasks.length}
+                items={tasks.slice(0, 3).map((t) => ({
                   left: t.title,
-                  right: t.due_date
-                    ? new Date(t.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })
-                    : "Inbox",
+                  right: t.priority?.toUpperCase(),
+                  rightStyle: { color: t.priority === "high" ? "var(--danger)" : "var(--fg-muted)" },
                 }))}
-              />
-              <SummaryCard
-                icon="📝" label="Lists" count={lists.length}
-                onClick={() => setFilter("list")}
-                items={lists.slice(0, 4).map((l) => ({
-                  left: l.title,
-                  right: "—",
-                }))}
+                onClick={() => setFilter("task")}
               />
             </div>
           </div>
@@ -152,7 +137,9 @@ export default function Commitments() {
                 habits.map((h) => {
                   const dh = daily?.habits?.find((item) => item.commitment.id === h.id);
                   const checked = !!dh?.today_record;
-                  const tags = h.config?.tags || [];
+                  const itemLabels = (h.labels && h.labels.length > 0)
+                    ? h.labels
+                    : (h.config?.tags || []).map((t) => labels.find((l) => l.name.toLowerCase() === t.toLowerCase()) || { id: t, name: t, color: "#3b82f6" });
                   const streak = h.progress?.streak ?? 0;
 
                   return (
@@ -172,12 +159,11 @@ export default function Commitments() {
                       </div>
 
                       <div style={{ flex: 1, marginLeft: 24, display: "flex", gap: 6, alignItems: "center" }}>
-                        {tags.map((tag) => {
-                          const matched = labels.find((l) => l.name.toLowerCase() === tag.toLowerCase());
-                          const color = matched?.color || "#3b82f6";
+                        {itemLabels.map((lbl) => {
+                          const color = lbl.color || "#3b82f6";
                           return (
                             <span
-                              key={tag}
+                              key={lbl.id || lbl.name}
                               style={{
                                 display: "inline-flex",
                                 alignItems: "center",
@@ -192,7 +178,7 @@ export default function Commitments() {
                               }}
                             >
                               <span style={{ width: 6, height: 6, borderRadius: "50%", background: color }} />
-                              {tag}
+                              {lbl.name}
                             </span>
                           );
                         })}

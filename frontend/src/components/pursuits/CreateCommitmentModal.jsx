@@ -10,15 +10,16 @@ const TYPES = [
 ];
 
 export default function CreateCommitmentModal({ defaultType = "habit", commitmentToEdit = null, onClose }) {
-  const { createCommitment, updateCommitment } = usePursuitsStore();
+  const { createCommitment, updateCommitment, labels: storeLabels } = usePursuitsStore();
 
   const isEdit = !!commitmentToEdit;
 
   const [type, setType] = useState(commitmentToEdit?.type || defaultType || "habit");
   const [title, setTitle] = useState(commitmentToEdit?.title || "");
   const [description, setDescription] = useState(commitmentToEdit?.description || "");
-  const [labels, setLabels] = useState(commitmentToEdit?.config?.tags || []);
-  const [labelInput, setLabelInput] = useState("");
+  
+  const initialLabels = (commitmentToEdit?.labels || []).map((l) => l.name);
+  const [labels, setLabels] = useState(initialLabels);
 
   // Habit config
   const [targetCount, setTargetCount] = useState(commitmentToEdit?.config?.target_count || 7);
@@ -37,20 +38,6 @@ export default function CreateCommitmentModal({ defaultType = "habit", commitmen
   const [taskDueDate, setTaskDueDate] = useState(commitmentToEdit?.due_date || "");
 
   const [saving, setSaving] = useState(false);
-
-  const removeLabel = (tag) => {
-    setLabels(labels.filter((l) => l !== tag));
-  };
-
-  const addLabel = (e) => {
-    if (e.key === "Enter" && labelInput.trim()) {
-      e.preventDefault();
-      if (!labels.includes(labelInput.trim())) {
-        setLabels([...labels, labelInput.trim()]);
-      }
-      setLabelInput("");
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -74,11 +61,11 @@ export default function CreateCommitmentModal({ defaultType = "habit", commitmen
       due_date = taskDueDate || null;
     }
 
-    if (labels.length > 0) {
-      config.tags = labels;
-    } else {
-      delete config.tags;
-    }
+    delete config.tags;
+
+    const label_ids = labels
+      .map((name) => storeLabels.find((l) => l.name.toLowerCase() === name.toLowerCase())?.id)
+      .filter(Boolean);
 
     const payload = {
       title: title.trim(),
@@ -87,6 +74,7 @@ export default function CreateCommitmentModal({ defaultType = "habit", commitmen
       priority,
       due_date,
       config,
+      label_ids,
     };
 
     try {
