@@ -99,10 +99,12 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
     e.dataTransfer.setData("text/plain", item.id);
     e.dataTransfer.setData("source-type", "list-item");
     e.dataTransfer.setData("source-parent-id", list.id);
+    e.dataTransfer.setData("list-item", "true");
   };
 
   const handleItemDragOver = (e, targetItem) => {
     if (targetItem.status === "completed") return;
+    if (!e.dataTransfer.types.includes("list-item")) return;
     e.preventDefault();
     if (dragOverItemId !== targetItem.id) {
       setDragOverItemId(targetItem.id);
@@ -114,14 +116,19 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
   };
 
   const handleItemDrop = async (e, targetItem) => {
+    const sourceType = e.dataTransfer.getData("source-type");
+    if (sourceType !== "list-item") {
+      // Let it bubble up to handleDrop of ListCard container
+      return;
+    }
+
     e.preventDefault();
     e.stopPropagation();
     setDragOverItemId(null);
 
     const dragItemId = e.dataTransfer.getData("text/plain");
-    const sourceType = e.dataTransfer.getData("source-type");
 
-    if (sourceType === "list-item" && dragItemId !== targetItem.id) {
+    if (dragItemId !== targetItem.id) {
       const dragItem = items.find(it => it.id === dragItemId);
       if (!dragItem || dragItem.status === "completed" || targetItem.status === "completed") return;
 

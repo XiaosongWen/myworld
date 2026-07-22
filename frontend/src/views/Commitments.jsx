@@ -539,6 +539,7 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onProm
 
   const handleTaskDragOver = (e, targetTask) => {
     if (targetTask.status === "completed") return;
+    if (!e.dataTransfer.types.includes("task-card")) return;
     e.preventDefault();
     if (dragOverTaskId !== targetTask.id) {
       setDragOverTaskId(targetTask.id);
@@ -550,14 +551,19 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onProm
   };
 
   const handleTaskDrop = async (e, targetTask) => {
+    const sourceType = e.dataTransfer.getData("source-type");
+    if (sourceType !== "task-card") {
+      // Let it bubble up to handleDrop of TaskColumn
+      return;
+    }
+
     e.preventDefault();
     e.stopPropagation();
     setDragOverTaskId(null);
 
     const dragTaskId = e.dataTransfer.getData("text/plain");
-    const sourceType = e.dataTransfer.getData("source-type");
 
-    if (sourceType === "task-card" && dragTaskId !== targetTask.id) {
+    if (dragTaskId !== targetTask.id) {
       const dragTask = tasks.find(t => t.id === dragTaskId);
       if (!dragTask || dragTask.status === "completed" || targetTask.status === "completed") return;
 
