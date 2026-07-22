@@ -35,6 +35,7 @@ export default function TaskCard({ task, onToggleStatus, onOpenDetail, onEdit })
   const handleDragStart = (e) => {
     e.dataTransfer.setData("text/plain", task.id);
     e.dataTransfer.setData("source-type", "task-card");
+    e.dataTransfer.setData("source-due-date", task.due_date || "");
   };
 
   const handleStatusClick = (e) => {

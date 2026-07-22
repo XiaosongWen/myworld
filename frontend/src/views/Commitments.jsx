@@ -48,6 +48,7 @@ export default function Commitments() {
   const [createType, setCreateType] = useState(null);
   const [editingCommitment, setEditingCommitment] = useState(null);
   const [selectedDetailId, setSelectedDetailId] = useState(null);
+  const [rescheduleTaskId, setRescheduleTaskId] = useState(null);
 
   const now = new Date();
   const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -320,7 +321,7 @@ export default function Commitments() {
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div className="priority-dot low" /> Low</div>
               </div>
             </div>
-            <TaskGroupView tasks={tasks} todayISO={todayISO} onOpenDetail={(id) => setSelectedDetailId(id)} onEdit={(task) => setEditingCommitment(task)} />
+            <TaskGroupView tasks={tasks} todayISO={todayISO} onOpenDetail={(id) => setSelectedDetailId(id)} onEdit={(task) => setEditingCommitment(task)} onPromptReschedule={setRescheduleTaskId} />
           </div>
         )}
 
@@ -362,6 +363,22 @@ export default function Commitments() {
           commitmentId={selectedDetailId}
           onClose={() => setSelectedDetailId(null)}
           onEdit={(c) => setEditingCommitment(c)}
+        />
+      )}
+
+      {rescheduleTaskId && (
+        <RescheduleModal
+          taskId={rescheduleTaskId}
+          todayISO={todayISO}
+          onClose={() => setRescheduleTaskId(null)}
+          onConfirm={async (selectedDate) => {
+            try {
+              await updateCommitment(rescheduleTaskId, { due_date: selectedDate });
+            } catch (err) {
+              console.error("Failed to reschedule task:", err);
+            }
+            setRescheduleTaskId(null);
+          }}
         />
       )}
     </div>
@@ -409,7 +426,7 @@ function SummaryCard({ icon, label, count, items, onClick }) {
 
 // ── Task group view (Inbox / Today / Upcoming) ─────────────────────────
 
-function TaskGroupView({ tasks, todayISO, onOpenDetail, onEdit }) {
+function TaskGroupView({ tasks, todayISO, onOpenDetail, onEdit, onPromptReschedule }) {
   const isCompletedToday = (t) => {
     if (t.status !== "completed" || !t.updated_at) return false;
     const d = new Date(t.updated_at);
@@ -427,14 +444,14 @@ function TaskGroupView({ tasks, todayISO, onOpenDetail, onEdit }) {
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
-      <TaskColumn icon="📥" label="Inbox" tasks={inbox} todayISO={todayISO} onOpenDetail={onOpenDetail} onEdit={onEdit} />
-      <TaskColumn icon="☀️" label="Today" tasks={todayTasks} todayISO={todayISO} onOpenDetail={onOpenDetail} onEdit={onEdit} />
-      <TaskColumn icon="📅" label="Upcoming" tasks={upcoming} todayISO={todayISO} onOpenDetail={onOpenDetail} onEdit={onEdit} />
+      <TaskColumn icon="📥" label="Inbox" tasks={inbox} todayISO={todayISO} onOpenDetail={onOpenDetail} onEdit={onEdit} onPromptReschedule={onPromptReschedule} />
+      <TaskColumn icon="☀️" label="Today" tasks={todayTasks} todayISO={todayISO} onOpenDetail={onOpenDetail} onEdit={onEdit} onPromptReschedule={onPromptReschedule} />
+      <TaskColumn icon="📅" label="Upcoming" tasks={upcoming} todayISO={todayISO} onOpenDetail={onOpenDetail} onEdit={onEdit} onPromptReschedule={onPromptReschedule} />
     </div>
   );
 }
 
-function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit }) {
+function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onPromptReschedule }) {
   const { createCommitment, updateCommitment } = usePursuitsStore();
   const [quickTitle, setQuickTitle] = useState("");
   const [showCompleted, setShowCompleted] = useState(true);
@@ -457,21 +474,39 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit }) {
     
     const taskId = e.dataTransfer.getData("text/plain");
     const sourceType = e.dataTransfer.getData("source-type");
+    const sourceDueDate = e.dataTransfer.getData("source-due-date");
     
     if (sourceType === "task-card") {
-      let nextDueDate = null;
       if (label === "Today") {
-        nextDueDate = todayISO;
+        try {
+          await updateCommitment(taskId, { due_date: todayISO });
+        } catch (err) {
+          console.error("Failed to move task to Today:", err);
+        }
       } else if (label === "Upcoming") {
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        nextDueDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
-      }
-      
-      try {
-        await updateCommitment(taskId, { due_date: nextDueDate });
-      } catch (err) {
-        console.error("Failed to move task:", err);
+        const isFromInbox = !sourceDueDate;
+        const isFromToday = sourceDueDate === todayISO;
+        
+        if (isFromInbox || isFromToday) {
+          onPromptReschedule?.(taskId);
+        } else {
+          // Already upcoming, keep existing or set tomorrow if somehow empty
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const tomorrowISO = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+          const targetDate = sourceDueDate || tomorrowISO;
+          try {
+            await updateCommitment(taskId, { due_date: targetDate });
+          } catch (err) {
+            console.error("Failed to move task to Upcoming:", err);
+          }
+        }
+      } else if (label === "Inbox") {
+        try {
+          await updateCommitment(taskId, { due_date: null });
+        } catch (err) {
+          console.error("Failed to move task to Inbox:", err);
+        }
       }
     }
   };
@@ -582,3 +617,83 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit }) {
     </div>
   );
 }
+
+function RescheduleModal({ taskId, onClose, onConfirm, todayISO }) {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowISO = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+  
+  const [selectedDate, setSelectedDate] = useState(tomorrowISO);
+
+  return (
+    <div
+      className="modal-backdrop"
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.4)",
+        backdropFilter: "blur(4px)",
+        zIndex: 1050,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        className="modal-content"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "var(--surface-raised)",
+          border: "1px solid var(--border-light)",
+          borderRadius: "var(--radius-md)",
+          padding: "24px",
+          width: "320px",
+          boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.2)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px",
+        }}
+      >
+        <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "var(--fg)" }}>Select Due Date</h3>
+        
+        <input
+          type="date"
+          value={selectedDate}
+          min={tomorrowISO}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "10px 12px",
+            borderRadius: "var(--radius-sm)",
+            border: "1px solid var(--border-light)",
+            background: "var(--bg)",
+            color: "var(--fg)",
+            fontSize: "14px",
+            outline: "none",
+            boxSizing: "border-box",
+            fontFamily: "var(--font-main)"
+          }}
+        />
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+          <button
+            className="pill-btn"
+            onClick={onClose}
+            style={{ fontSize: "13px", padding: "6px 12px", background: "transparent", border: "1px solid var(--border)", color: "var(--fg)", cursor: "pointer" }}
+          >
+            Cancel
+          </button>
+          <button
+            className="btn-primary"
+            onClick={() => onConfirm(selectedDate)}
+            style={{ fontSize: "13px", padding: "6px 16px", borderRadius: "16px", cursor: "pointer" }}
+          >
+            Schedule
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
