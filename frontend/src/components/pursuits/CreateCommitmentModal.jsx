@@ -1,19 +1,13 @@
 import React, { useState } from "react";
 import usePursuitsStore from "../../stores/pursuitsStore";
 import LabelPicker from "./LabelPicker";
+import EmojiPicker from "emoji-picker-react";
 
 const TYPES = [
   { id: "habit", icon: "🔄", label: "Habit" },
   { id: "goal", icon: "🎯", label: "Goal" },
   { id: "task", icon: "📋", label: "Task" },
   { id: "list", icon: "📝", label: "List" },
-];
-
-const EMOJIS = [
-  "🎯", "📋", "🔄", "📝", "📌", "💡", "📅", "🏆", 
-  "💪", "📚", "💻", "🎨", "🎵", "✈️", "🍳", "💼", 
-  "🚗", "🏡", "🍎", "💧", "📈", "💬", "❤️", "🌟", 
-  "🧩", "⏰", "☘️", "🔑", "🍿", "🧘", "🚲", "🐾"
 ];
 
 export default function CreateCommitmentModal({ defaultType = "habit", commitmentToEdit = null, onClose }) {
@@ -219,59 +213,21 @@ export default function CreateCommitmentModal({ defaultType = "habit", commitmen
                       top: "52px",
                       left: 0,
                       zIndex: 1010,
-                      background: "var(--bg)",
-                      border: "1px solid var(--border)",
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
                       borderRadius: "8px",
-                      boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-                      padding: "12px",
-                      width: "220px",
+                      overflow: "hidden",
                     }}
                   >
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px", marginBottom: "8px" }}>
-                      {EMOJIS.map((emoji) => (
-                        <button
-                          key={emoji}
-                          type="button"
-                          onClick={() => {
-                            setIcon(emoji);
-                            setShowEmojiPicker(false);
-                          }}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            fontSize: "18px",
-                            cursor: "pointer",
-                            padding: "4px",
-                            borderRadius: "4px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                          }}
-                          className="emoji-btn"
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                    <div style={{ borderTop: "1px solid var(--border)", paddingTop: "8px" }}>
-                      <input
-                        type="text"
-                        placeholder="Custom emoji..."
-                        value={icon}
-                        onChange={(e) => setIcon(e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "6px 8px",
-                          borderRadius: "4px",
-                          border: "1px solid var(--border)",
-                          background: "var(--surface-raised)",
-                          color: "var(--fg)",
-                          fontSize: "12px",
-                          outline: "none",
-                          boxSizing: "border-box",
-                        }}
-                      />
-                    </div>
+                    <EmojiPicker
+                      theme="dark"
+                      onEmojiClick={(emojiData) => {
+                        setIcon(emojiData.emoji);
+                        setShowEmojiPicker(false);
+                      }}
+                      width={320}
+                      height={380}
+                      skinTonesDisabled={true}
+                    />
                   </div>
                 )}
               </div>
