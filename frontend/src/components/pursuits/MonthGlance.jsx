@@ -18,11 +18,12 @@ export default function MonthGlance({ habits = [] }) {
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth());
   const [selectedDateEvents, setSelectedDateEvents] = useState(null);
+  const [dragOverDate, setDragOverDate] = useState(null);
 
   const todayDate = now.getDate();
   const isCurrentMonthYear = now.getFullYear() === currentYear && now.getMonth() === currentMonth;
 
-  const { commitments, records } = usePursuitsStore();
+  const { commitments, records, updateCommitment } = usePursuitsStore();
 
   const monthName = new Date(currentYear, currentMonth, 1).toLocaleString("default", { month: "long", year: "numeric" });
 
@@ -169,6 +170,57 @@ export default function MonthGlance({ habits = [] }) {
     return { color: "var(--danger)", label: `${habitTitle}: Not checked in (streak broken)`, icon: "🔴" };
   };
 
+  const handleEventDragStart = (e, ev, sourceDateStr) => {
+    const actualId = ev.id.replace(/^(due-|done-|habit-)/, "");
+    e.dataTransfer.setData("text/plain", actualId);
+    e.dataTransfer.setData("source-type", "calendar-event");
+    e.dataTransfer.setData("source-date", sourceDateStr);
+    
+    window.dragManager = {
+      draggedItemId: actualId,
+      sourceType: "calendar-event",
+      sourceParentId: null,
+      sourceColumn: null,
+      sourceDate: sourceDateStr
+    };
+  };
+
+  const handleEventDragEnd = () => {
+    window.dragManager = null;
+  };
+
+  const handleCellDragOver = (e, dateStr) => {
+    const dm = window.dragManager;
+    if (!dm || dm.sourceType !== "calendar-event") return;
+    if (dm.sourceDate === dateStr) return;
+    e.preventDefault();
+    if (dragOverDate !== dateStr) {
+      setDragOverDate(dateStr);
+    }
+  };
+
+  const handleCellDragLeave = () => {
+    setDragOverDate(null);
+  };
+
+  const handleCellDrop = async (e, dateStr) => {
+    e.preventDefault();
+    setDragOverDate(null);
+
+    const dm = window.dragManager;
+    if (!dm || dm.sourceType !== "calendar-event") return;
+    if (dm.sourceDate === dateStr) return;
+
+    const commitmentId = dm.draggedItemId;
+    try {
+      await updateCommitment(commitmentId, { due_date: dateStr });
+    } catch (err) {
+      console.error("Failed to update commitment due date:", err);
+    }
+
+    setSelectedDateEvents(null);
+  };
+
   const handleCellClick = (day) => {
     if (!day) return;
     const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
@@ -235,8 +287,16 @@ export default function MonthGlance({ habits = [] }) {
           <div
             key={day}
             className={`day-cell${isToday ? " active" : ""}`}
-            style={{ cursor: "pointer" }}
+            style={{
+              cursor: "pointer",
+              borderColor: dragOverDate === dateStr ? "var(--accent)" : undefined,
+              background: dragOverDate === dateStr ? "var(--accent-glow)" : undefined,
+              boxShadow: dragOverDate === dateStr ? "0 0 0 2px var(--accent)" : undefined,
+            }}
             onClick={() => handleCellClick(day)}
+            onDragOver={(e) => handleCellDragOver(e, dateStr)}
+            onDragLeave={handleCellDragLeave}
+            onDrop={(e) => handleCellDrop(e, dateStr)}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span className="day-number">{day}</span>
@@ -273,6 +333,9 @@ export default function MonthGlance({ habits = [] }) {
                   <div
                     key={ev.id}
                     className="day-event"
+                    draggable={true}
+                    onDragStart={(e) => handleEventDragStart(e, ev, dateStr)}
+                    onDragEnd={handleEventDragEnd}
                     style={{
                       fontSize: 10,
                       padding: "2px 4px",
@@ -285,6 +348,7 @@ export default function MonthGlance({ habits = [] }) {
                       display: "flex",
                       alignItems: "center",
                       gap: 4,
+                      cursor: "grab",
                     }}
                   >
                     <span style={{ fontSize: 10 }}>{ev.icon}</span>
@@ -387,6 +451,9 @@ export default function MonthGlance({ habits = [] }) {
                   {selectedDateEvents.pendingEvents.map((ev) => (
                     <div
                       key={ev.id}
+                      draggable={true}
+                      onDragStart={(e) => handleEventDragStart(e, ev, selectedDateEvents.dateStr)}
+                      onDragEnd={handleEventDragEnd}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -395,6 +462,7 @@ export default function MonthGlance({ habits = [] }) {
                         borderRadius: 6,
                         background: "var(--surface-raised)",
                         border: "1px solid var(--border)",
+                        cursor: "grab",
                       }}
                     >
                       <span style={{ fontSize: 16 }}>{ev.icon}</span>
