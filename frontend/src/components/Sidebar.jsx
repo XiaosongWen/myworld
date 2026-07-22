@@ -37,7 +37,17 @@ export default function Sidebar() {
             <path d="M5 15c2 4 12 4 14 0" stroke="url(#logo-grad)" />
             <path d="M7 17c1.5 3 8.5 3 10 0" stroke="url(#logo-grad)" />
           </svg>
-          <span className="brand-text">Nest</span>
+          <span
+            className="brand-text"
+            style={{
+              background: "linear-gradient(135deg, #f54e00 0%, #cf2d56 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              fontWeight: 800,
+            }}
+          >
+            Nest
+          </span>
         </div>
         <button
           className="icon-btn sidebar-toggle"
