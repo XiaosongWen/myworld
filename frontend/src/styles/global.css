@@ -1072,3 +1072,38 @@
   color: var(--fg-muted);
 }
 
+/* Emoji Picker Theme Overrides */
+.EmojiPickerReact,
+.EmojiPickerReact.epr-dark-theme {
+  --epr-bg-color: var(--surface) !important;
+  --epr-category-navigation-button-active-color: var(--accent) !important;
+  --epr-hover-bg-color: var(--surface-hover) !important;
+  --epr-focus-bg-color: var(--surface-hover) !important;
+  --epr-search-input-bg-color: var(--bg) !important;
+  --epr-search-input-border-color: var(--border) !important;
+  --epr-search-input-text-color: var(--fg) !important;
+  --epr-category-icon-active-color: var(--accent) !important;
+  --epr-text-color: var(--fg) !important;
+  --epr-category-label-bg-color: var(--surface) !important;
+  --epr-category-label-text-color: var(--fg-muted) !important;
+  --epr-border-color: var(--border) !important;
+  border-color: var(--border) !important;
+}
+
+/* Override input placeholder text and search border */
+.EmojiPickerReact input.epr-search {
+  background-color: var(--bg) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--fg) !important;
+}
+
+/* Override active header category indicator bar */
+.EmojiPickerReact .epr-header {
+  border-bottom: 1px solid var(--border) !important;
+}
+
+.EmojiPickerReact .epr-category-label {
+  background-color: var(--surface) !important;
+  color: var(--fg-muted) !important;
+}
+
