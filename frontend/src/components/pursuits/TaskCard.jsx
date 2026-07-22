@@ -1,5 +1,6 @@
 import React from "react";
 import LabelPill from "./LabelPill";
+import { formatLocalDateShort } from "../../utils/date";
 
 const STATUS_ICON = { "completed": "✓", "in-progress": "🔄", "in_progress": "🔄" };
 const PRIORITY_CLASS = { high: "high", medium: "med", low: "low", none: "low" };
@@ -76,7 +77,7 @@ export default function TaskCard({ task, onToggleStatus, onOpenDetail, onEdit })
           style={{ color: isPastDue ? "var(--danger)" : undefined, fontWeight: isPastDue ? "600" : undefined }}
           title={isPastDue ? "Overdue" : "Due Date"}
         >
-          {new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+          {formatLocalDateShort(task.due_date)}
         </span>
       )}
       <button className="icon-btn" title="Edit" onClick={(e) => { e.stopPropagation(); onEdit?.(task); }} style={{ marginLeft: 4 }}>

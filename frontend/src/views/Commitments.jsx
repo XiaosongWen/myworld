@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import usePursuitsStore from "../stores/pursuitsStore";
 import LabelPill from "../components/pursuits/LabelPill";
+import { formatLocalDateShort } from "../utils/date";
 import HabitChecklist from "../components/pursuits/HabitChecklist";
 import GoalCard from "../components/pursuits/GoalCard";
 import TaskCard from "../components/pursuits/TaskCard";
@@ -198,7 +199,7 @@ export default function Commitments() {
                   .map((t) => ({
                     left: t.title,
                     labels: t.labels || [],
-                    right: t.status === "completed" ? "Done" : (t.due_date ? new Date(t.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : (t.priority ? t.priority.toUpperCase() : "Pending")),
+                    right: t.status === "completed" ? "Done" : (t.due_date ? formatLocalDateShort(t.due_date) : (t.priority ? t.priority.toUpperCase() : "Pending")),
                     rightStyle: { color: t.status === "completed" ? "var(--success)" : (t.priority === "high" ? "var(--danger)" : "var(--fg-muted)") },
                   }))}
                 onClick={() => handleSetFilter("task")}

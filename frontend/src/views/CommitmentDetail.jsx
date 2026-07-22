@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import usePursuitsStore from "../stores/pursuitsStore";
 import Timeline from "../components/pursuits/Timeline";
+import { formatLocalDateLong } from "../utils/date";
 
 export default function CommitmentDetail({ commitmentId, onClose, onEdit }) {
   const { commitments, deleteCommitment, fetchRecords, records, labels: storeLabels } = usePursuitsStore();
@@ -200,7 +201,7 @@ export default function CommitmentDetail({ commitmentId, onClose, onEdit }) {
         <div style={{ display: "flex", alignItems: "center", gap: "12px", marginLeft: "auto" }}>
           {commitment.due_date && (
             <span className="text-muted" style={{ fontSize: "13px", whiteSpace: "nowrap" }}>
-              Due: {new Date(commitment.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              Due: {formatLocalDateLong(commitment.due_date)}
             </span>
           )}
           <button className="icon-btn" onClick={onClose} title="Close">✕</button>

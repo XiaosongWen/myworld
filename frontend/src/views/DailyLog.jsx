@@ -8,6 +8,7 @@ import CreateCommitmentModal from "../components/pursuits/CreateCommitmentModal"
 import CommitmentDetail from "./CommitmentDetail";
 import LabelPill from "../components/pursuits/LabelPill";
 import { fetchWeatherForecast, searchWeatherLocations } from "../api/weather";
+import { formatLocalDateShort } from "../utils/date";
 
 
 
@@ -555,7 +556,7 @@ function GoalSummaryFromStore({ onOpenCreate, onSelectGoal }) {
             {/* Deadline */}
             {g.due_date && (
               <span className="text-muted" style={{ fontSize: "12px", whiteSpace: "nowrap" }}>
-                Due: {new Date(g.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                Due: {formatLocalDateShort(g.due_date)}
               </span>
             )}
 

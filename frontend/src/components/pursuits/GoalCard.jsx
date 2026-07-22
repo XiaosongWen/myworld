@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import LabelPill from "./LabelPill";
 import usePursuitsStore from "../../stores/pursuitsStore";
+import { formatLocalDateLong } from "../../utils/date";
 
 export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = false }) {
   const { commitments, createCommitment, updateCommitment, deleteCommitment } = usePursuitsStore();
@@ -109,7 +110,7 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
 
       {goal.due_date && (
         <div className="text-sm text-muted" style={{ marginBottom: 12 }}>
-          Due: {new Date(goal.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          Due: {formatLocalDateLong(goal.due_date)}
         </div>
       )}
 
