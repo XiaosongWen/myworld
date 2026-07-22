@@ -37,6 +37,13 @@ export default function TaskCard({ task, onToggleStatus, onOpenDetail, onEdit })
     e.dataTransfer.setData("source-type", "task-card");
     e.dataTransfer.setData("source-due-date", task.due_date || "");
     e.dataTransfer.setData("task-card", "true");
+    if (!task.due_date) {
+      e.dataTransfer.setData("column-inbox", "true");
+    } else if (task.due_date === todayISO) {
+      e.dataTransfer.setData("column-today", "true");
+    } else {
+      e.dataTransfer.setData("column-upcoming", "true");
+    }
   };
 
   const handleStatusClick = (e) => {

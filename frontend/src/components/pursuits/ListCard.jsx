@@ -100,11 +100,13 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
     e.dataTransfer.setData("source-type", "list-item");
     e.dataTransfer.setData("source-parent-id", list.id);
     e.dataTransfer.setData("list-item", "true");
+    e.dataTransfer.setData("parent-" + String(list.id).toLowerCase(), "true");
   };
 
   const handleItemDragOver = (e, targetItem) => {
     if (targetItem.status === "completed") return;
     if (!e.dataTransfer.types.includes("list-item")) return;
+    if (!e.dataTransfer.types.includes("parent-" + String(list.id).toLowerCase())) return;
     e.preventDefault();
     if (dragOverItemId !== targetItem.id) {
       setDragOverItemId(targetItem.id);
