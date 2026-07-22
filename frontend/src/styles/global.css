@@ -390,7 +390,7 @@
             align-items: center;
             justify-content: center;
             font-variant-numeric: tabular-nums;
-            font-family: 'Inter', -apple-system, sans-serif;
+            font-family: var(--font-main);
             min-width: 64px;
         }
         .flip-panel::after {
