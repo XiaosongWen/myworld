@@ -138,6 +138,19 @@ export default function DailyLog() {
     } catch (_) {}
   };
 
+  const handleLocationResolved = useCallback((loc) => {
+    if (loc?.city) {
+      const name = loc.region ? `${loc.city}, ${loc.region}` : loc.city;
+      setLocationName(name);
+    }
+    if (loc?.timezone) {
+      setLocationTimezone(loc.timezone);
+    } else {
+      setLocationTimezone(null);
+    }
+  }, []);
+
+
   const openCreateModal = (type) => {
     setCreateType(type);
     setShowCreate(true);
@@ -291,17 +304,7 @@ export default function DailyLog() {
           <WeatherStrip
             customLocation={customLocation}
             onOpenLocationPicker={() => setShowLocationPicker(true)}
-            onLocationResolved={(loc) => {
-              if (loc?.city) {
-                const name = loc.region ? `${loc.city}, ${loc.region}` : loc.city;
-                setLocationName(name);
-              }
-              if (loc?.timezone) {
-                setLocationTimezone(loc.timezone);
-              } else {
-                setLocationTimezone(null);
-              }
-            }}
+            onLocationResolved={handleLocationResolved}
           />
 
 

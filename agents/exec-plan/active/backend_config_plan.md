@@ -44,7 +44,6 @@ storage_path: /app/storage
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-
 class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://myworld:myworld@localhost:5432/myworld"
     redis_url: str = "redis://localhost:6379"
