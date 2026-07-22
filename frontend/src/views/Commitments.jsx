@@ -435,12 +435,24 @@ function TaskGroupView({ tasks, todayISO, onOpenDetail, onEdit, onPromptReschedu
     return iso === todayISO;
   };
 
+  const getTwoWeeksLaterISO = (todayStr) => {
+    const parts = todayStr.split("-");
+    if (parts.length !== 3) return todayStr;
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const d = new Date(year, month, day);
+    d.setDate(d.getDate() + 14);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const twoWeeksLaterISO = getTwoWeeksLaterISO(todayISO);
+
   const inbox = tasks.filter((t) => t.status !== "completed" && !t.due_date);
   const todayTasks = tasks.filter((t) =>
     (t.due_date && (t.due_date === todayISO || (t.due_date < todayISO && t.status !== "completed"))) ||
     isCompletedToday(t)
   );
-  const upcoming = tasks.filter((t) => t.status !== "completed" && t.due_date && t.due_date > todayISO);
+  const upcoming = tasks.filter((t) => t.status !== "completed" && t.due_date && t.due_date > todayISO && t.due_date <= twoWeeksLaterISO);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
