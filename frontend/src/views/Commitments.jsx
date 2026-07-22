@@ -557,15 +557,19 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onProm
       return;
     }
 
+    const dragTaskId = e.dataTransfer.getData("text/plain");
+    const dragTask = tasks.find(t => t.id === dragTaskId);
+    if (!dragTask) {
+      // It came from another column! Let it bubble up to TaskColumn's handleDrop!
+      return;
+    }
+
     e.preventDefault();
     e.stopPropagation();
     setDragOverTaskId(null);
 
-    const dragTaskId = e.dataTransfer.getData("text/plain");
-
     if (dragTaskId !== targetTask.id) {
-      const dragTask = tasks.find(t => t.id === dragTaskId);
-      if (!dragTask || dragTask.status === "completed" || targetTask.status === "completed") return;
+      if (dragTask.status === "completed" || targetTask.status === "completed") return;
 
       const activeTasks = sortedTasks.filter(t => t.status !== "completed");
       const dragIndex = activeTasks.findIndex(t => t.id === dragTaskId);

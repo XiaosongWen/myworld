@@ -122,15 +122,19 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
       return;
     }
 
+    const dragItemId = e.dataTransfer.getData("text/plain");
+    const dragItem = items.find(it => it.id === dragItemId);
+    if (!dragItem) {
+      // It came from another list card! Let it bubble up to ListCard container's handleDrop!
+      return;
+    }
+
     e.preventDefault();
     e.stopPropagation();
     setDragOverItemId(null);
 
-    const dragItemId = e.dataTransfer.getData("text/plain");
-
     if (dragItemId !== targetItem.id) {
-      const dragItem = items.find(it => it.id === dragItemId);
-      if (!dragItem || dragItem.status === "completed" || targetItem.status === "completed") return;
+      if (dragItem.status === "completed" || targetItem.status === "completed") return;
 
       const activeItems = items.filter(it => it.status !== "completed");
       const dragIndex = activeItems.findIndex(it => it.id === dragItemId);
