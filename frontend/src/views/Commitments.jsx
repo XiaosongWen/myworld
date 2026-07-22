@@ -410,7 +410,7 @@ function SummaryCard({ icon, label, count, items, onClick }) {
 
 function TaskGroupView({ tasks, todayISO, onOpenDetail, onEdit }) {
   const inbox = tasks.filter((t) => t.status !== "completed" && !t.due_date);
-  const todayTasks = tasks.filter((t) => (t.due_date && t.due_date === todayISO) || t.status === "completed");
+  const todayTasks = tasks.filter((t) => t.due_date && (t.due_date === todayISO || (t.due_date < todayISO && t.status !== "completed")));
   const upcoming = tasks.filter((t) => t.status !== "completed" && t.due_date && t.due_date > todayISO);
 
   return (
