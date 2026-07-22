@@ -21,16 +21,21 @@ export default function Sidebar() {
       {/* Brand */}
       <div className="brand">
         <div className="brand-text-wrapper">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <defs>
               <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="#f54e00" />
                 <stop offset="100%" stopColor="#cf2d56" />
               </linearGradient>
             </defs>
-            <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="url(#logo-grad)" fill="rgba(245, 78, 0, 0.1)" />
-            <path d="M2 17l10 5 10-5" stroke="url(#logo-grad)" />
-            <path d="M2 12l10 5 10-5" stroke="url(#logo-grad)" />
+            {/* Eggs */}
+            <circle cx="9" cy="11" r="2.5" stroke="url(#logo-grad)" fill="rgba(245, 78, 0, 0.08)" />
+            <circle cx="15" cy="11" r="2.5" stroke="url(#logo-grad)" fill="rgba(245, 78, 0, 0.08)" />
+            <circle cx="12" cy="13" r="2.5" stroke="url(#logo-grad)" fill="rgba(245, 78, 0, 0.08)" />
+            {/* Woven Twigs base */}
+            <path d="M3 13c1 5 17 5 18 0" stroke="url(#logo-grad)" />
+            <path d="M5 15c2 4 12 4 14 0" stroke="url(#logo-grad)" />
+            <path d="M7 17c1.5 3 8.5 3 10 0" stroke="url(#logo-grad)" />
           </svg>
           <span className="brand-text">Nest</span>
         </div>
