@@ -101,12 +101,19 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
     e.dataTransfer.setData("source-parent-id", list.id);
     e.dataTransfer.setData("list-item", "true");
     e.dataTransfer.setData("parent-" + String(list.id).toLowerCase(), "true");
+    
+    window.dragManager = {
+      draggedItemId: item.id,
+      sourceType: "list-item",
+      sourceParentId: list.id,
+      sourceColumn: null,
+    };
   };
 
   const handleItemDragOver = (e, targetItem) => {
     if (targetItem.status === "completed") return;
-    if (!e.dataTransfer.types.includes("list-item")) return;
-    if (!e.dataTransfer.types.includes("parent-" + String(list.id).toLowerCase())) return;
+    const dm = window.dragManager;
+    if (!dm || dm.sourceType !== "list-item" || String(dm.sourceParentId) !== String(list.id)) return;
     e.preventDefault();
     if (dragOverItemId !== targetItem.id) {
       setDragOverItemId(targetItem.id);
@@ -260,6 +267,7 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
               key={item.id}
               draggable={!isDone}
               onDragStart={(e) => handleItemDragStart(e, item)}
+              onDragEnd={() => { window.dragManager = null; }}
               onDragOver={(e) => handleItemDragOver(e, item)}
               onDragLeave={handleItemDragLeave}
               onDrop={(e) => handleItemDrop(e, item)}

@@ -44,6 +44,13 @@ export default function TaskCard({ task, onToggleStatus, onOpenDetail, onEdit })
     } else {
       e.dataTransfer.setData("column-upcoming", "true");
     }
+    
+    window.dragManager = {
+      draggedItemId: task.id,
+      sourceType: "task-card",
+      sourceParentId: task.parent_id,
+      sourceColumn: !task.due_date ? "inbox" : (task.due_date === todayISO ? "today" : "upcoming"),
+    };
   };
 
   const handleStatusClick = (e) => {
@@ -57,6 +64,7 @@ export default function TaskCard({ task, onToggleStatus, onOpenDetail, onEdit })
       className="task-item"
       draggable={!isDone}
       onDragStart={handleDragStart}
+      onDragEnd={() => { window.dragManager = null; }}
       style={{ cursor: isDone ? "default" : "grab" }}
     >
       <span

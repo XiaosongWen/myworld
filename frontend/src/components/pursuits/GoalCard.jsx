@@ -89,11 +89,19 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
     e.dataTransfer.setData("source-type", "goal-subgoal");
     e.dataTransfer.setData("source-parent-id", goal.id);
     e.dataTransfer.setData("parent-" + String(goal.id).toLowerCase(), "true");
+    
+    window.dragManager = {
+      draggedItemId: sub.id,
+      sourceType: "goal-subgoal",
+      sourceParentId: goal.id,
+      sourceColumn: null,
+    };
   };
 
   const handleSubGoalDragOver = (e, targetSub) => {
     if (targetSub.status === "completed") return;
-    if (!e.dataTransfer.types.includes("parent-" + String(goal.id).toLowerCase())) return;
+    const dm = window.dragManager;
+    if (!dm || dm.sourceType !== "goal-subgoal" || String(dm.sourceParentId) !== String(goal.id)) return;
     e.preventDefault();
     e.stopPropagation();
     if (dragOverSubGoalId !== targetSub.id) {
@@ -190,6 +198,7 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
                 key={sub.id}
                 draggable={!isDone}
                 onDragStart={(e) => handleSubGoalDragStart(e, sub)}
+                onDragEnd={() => { window.dragManager = null; }}
                 onDragOver={(e) => handleSubGoalDragOver(e, sub)}
                 onDragLeave={handleSubGoalDragLeave}
                 onDrop={(e) => handleSubGoalDrop(e, sub)}

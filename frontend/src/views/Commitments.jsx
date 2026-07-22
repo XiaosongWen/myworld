@@ -539,9 +539,8 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onProm
 
   const handleTaskDragOver = (e, targetTask) => {
     if (targetTask.status === "completed") return;
-    if (!e.dataTransfer.types.includes("task-card")) return;
-    const targetColumnType = "column-" + String(label).toLowerCase();
-    if (!e.dataTransfer.types.includes(targetColumnType)) return;
+    const dm = window.dragManager;
+    if (!dm || dm.sourceType !== "task-card" || dm.sourceColumn !== String(label).toLowerCase()) return;
     e.preventDefault();
     if (dragOverTaskId !== targetTask.id) {
       setDragOverTaskId(targetTask.id);
