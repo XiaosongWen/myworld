@@ -409,8 +409,19 @@ function SummaryCard({ icon, label, count, items, onClick }) {
 // ── Task group view (Inbox / Today / Upcoming) ─────────────────────────
 
 function TaskGroupView({ tasks, todayISO, onOpenDetail, onEdit }) {
+  const isCompletedToday = (t) => {
+    if (t.status !== "completed" || !t.updated_at) return false;
+    const d = new Date(t.updated_at);
+    if (isNaN(d.getTime())) return false;
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return iso === todayISO;
+  };
+
   const inbox = tasks.filter((t) => t.status !== "completed" && !t.due_date);
-  const todayTasks = tasks.filter((t) => t.due_date && (t.due_date === todayISO || (t.due_date < todayISO && t.status !== "completed")));
+  const todayTasks = tasks.filter((t) =>
+    (t.due_date && (t.due_date === todayISO || (t.due_date < todayISO && t.status !== "completed"))) ||
+    isCompletedToday(t)
+  );
   const upcoming = tasks.filter((t) => t.status !== "completed" && t.due_date && t.due_date > todayISO);
 
   return (
@@ -454,9 +465,6 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit }) {
   const handleToggle = async (task) => {
     const newStatus = task.status === "completed" ? "active" : "completed";
     const payload = { status: newStatus };
-    if (newStatus === "completed") {
-      payload.due_date = todayISO;
-    }
     await updateCommitment(task.id, payload);
   };
 

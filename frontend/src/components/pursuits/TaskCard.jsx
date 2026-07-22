@@ -29,6 +29,8 @@ export default function TaskCard({ task, onToggleStatus, onOpenDetail, onEdit })
     }
   }
 
+  const isPastDue = task.due_date && task.due_date < todayISO && !isDone;
+
   const handleStatusClick = (e) => {
     e.stopPropagation();
     if (isDoneBeforeToday) return;
@@ -69,7 +71,11 @@ export default function TaskCard({ task, onToggleStatus, onOpenDetail, onEdit })
       </div>
       <div className={`priority-dot ${priorityClass}`} title={`${task.priority} priority`} />
       {task.due_date && (
-        <span className="task-date" title="Due Date">
+        <span
+          className="task-date"
+          style={{ color: isPastDue ? "var(--danger)" : undefined, fontWeight: isPastDue ? "600" : undefined }}
+          title={isPastDue ? "Overdue" : "Due Date"}
+        >
           {new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
         </span>
       )}
