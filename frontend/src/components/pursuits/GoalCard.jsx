@@ -22,7 +22,9 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
         const timeB = new Date(b.updated_at || b.completed_at || 0).getTime();
         return timeB - timeA;
       }
-      return 0;
+      const orderA = a.sort_order ?? 0;
+      const orderB = b.sort_order ?? 0;
+      return orderA - orderB;
     });
 
   // Compute percentage from subGoals if available, else fallback to goal.progress.percent
@@ -79,6 +81,67 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
     }
   };
 
+  const [dragOverSubGoalId, setDragOverSubGoalId] = useState(null);
+
+  const handleSubGoalDragStart = (e, sub) => {
+    e.stopPropagation();
+    e.dataTransfer.setData("text/plain", sub.id);
+    e.dataTransfer.setData("source-type", "goal-subgoal");
+    e.dataTransfer.setData("source-parent-id", goal.id);
+    e.dataTransfer.setData("parent-" + String(goal.id).toLowerCase(), "true");
+  };
+
+  const handleSubGoalDragOver = (e, targetSub) => {
+    if (targetSub.status === "completed") return;
+    if (!e.dataTransfer.types.includes("parent-" + String(goal.id).toLowerCase())) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragOverSubGoalId !== targetSub.id) {
+      setDragOverSubGoalId(targetSub.id);
+    }
+  };
+
+  const handleSubGoalDragLeave = (e) => {
+    e.stopPropagation();
+    setDragOverSubGoalId(null);
+  };
+
+  const handleSubGoalDrop = async (e, targetSub) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverSubGoalId(null);
+
+    const dragSubId = e.dataTransfer.getData("text/plain");
+    const sourceType = e.dataTransfer.getData("source-type");
+    const sourceParentId = e.dataTransfer.getData("source-parent-id");
+
+    if (sourceType === "goal-subgoal" && sourceParentId === goal.id && dragSubId !== targetSub.id) {
+      const dragSub = subGoals.find(s => s.id === dragSubId);
+      if (!dragSub || dragSub.status === "completed" || targetSub.status === "completed") return;
+
+      const activeSubs = subGoals.filter(s => s.status !== "completed");
+      const dragIndex = activeSubs.findIndex(s => s.id === dragSubId);
+      const targetIndex = activeSubs.findIndex(s => s.id === targetSub.id);
+
+      if (dragIndex !== -1 && targetIndex !== -1) {
+        const reordered = [...activeSubs];
+        reordered.splice(dragIndex, 1);
+        reordered.splice(targetIndex, 0, dragSub);
+
+        for (let i = 0; i < reordered.length; i++) {
+          const s = reordered[i];
+          if (s.sort_order !== i) {
+            try {
+              await updateCommitment(s.id, { sort_order: i });
+            } catch (err) {
+              console.error("Failed to update sub-goal sort order:", err);
+            }
+          }
+        }
+      }
+    }
+  };
+
   return (
     <div className="card" onClick={() => onOpenDetail?.(goal.id)} style={{ cursor: onOpenDetail ? "pointer" : "default" }}>
       <div className="goal-header">
@@ -125,6 +188,11 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
             return (
               <div
                 key={sub.id}
+                draggable={!isDone}
+                onDragStart={(e) => handleSubGoalDragStart(e, sub)}
+                onDragOver={(e) => handleSubGoalDragOver(e, sub)}
+                onDragLeave={handleSubGoalDragLeave}
+                onDrop={(e) => handleSubGoalDrop(e, sub)}
                 style={{
                   display: "flex",
                   gap: 8,
@@ -133,6 +201,9 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
                   marginBottom: 8,
                   alignItems: "center",
                   flexWrap: "wrap",
+                  cursor: isDone ? "default" : "grab",
+                  borderTop: dragOverSubGoalId === sub.id ? "2px solid var(--accent)" : "2px solid transparent",
+                  transition: "border-top 0.1s ease",
                 }}
               >
                 <div
