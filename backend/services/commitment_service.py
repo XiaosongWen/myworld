@@ -150,9 +150,29 @@ class CommitmentService:
             return None
         
         label_ids = data.label_ids
-        update_data = data.model_dump(exclude_unset=True, exclude={"label_ids"})
+        update_data = data.model_dump(exclude_unset=True, exclude={"label_ids", "parent_id"})
         for field, value in update_data.items():
             setattr(commitment, field, value)
+
+        if "parent_id" in data.model_fields_set:
+            new_parent_id = data.parent_id
+            
+            # Delete old parent links
+            old_parent_links_res = await db.execute(
+                select(CommitmentLink).where(CommitmentLink.child_id == commitment_id)
+            )
+            old_parent_links = list(old_parent_links_res.scalars().all())
+            for old_link in old_parent_links:
+                await db.delete(old_link)
+                
+            # Insert new parent link if any
+            if new_parent_id is not None:
+                new_link = CommitmentLink(
+                    parent_id=new_parent_id,
+                    child_id=commitment_id,
+                    sort_order=0
+                )
+                db.add(new_link)
 
         if label_ids is not None:
             old_links_res = await db.execute(

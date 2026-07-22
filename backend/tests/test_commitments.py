@@ -1,5 +1,5 @@
 from datetime import date
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, AsyncMock
 
 import pytest
 
@@ -72,3 +72,57 @@ async def test_progress_service_streak(db_session, test_user):
     progress = await ProgressService.compute_progress(db_session, commitment)
     assert progress.method == "streak"
     assert progress.streak == 1
+
+
+@pytest.mark.asyncio
+async def test_update_commitment_parent_id(db_session, test_user):
+    from schemas.commitment import CommitmentUpdate
+    from models.commitment_link import CommitmentLink
+    from sqlalchemy import select
+
+    # 1. Create a parent list
+    parent_data = CommitmentCreate(title="Parent List", type="list")
+    parent = await CommitmentService.create_commitment(db_session, test_user.id, parent_data)
+
+    # 2. Create a child task
+    child_data = CommitmentCreate(title="Child Task", type="task")
+    child = await CommitmentService.create_commitment(db_session, test_user.id, child_data)
+    child.parent_id = None
+
+    # Mock execute returns for update_commitment (get_commitment lookup)
+    get_commit_res = MagicMock()
+    get_commit_res.scalar_one_or_none.return_value = child
+    
+    # Mock links check (no existing links)
+    links_res = MagicMock()
+    links_res.scalars.return_value.all.return_value = []
+    
+    db_session.execute.side_effect = [get_commit_res, links_res]
+
+    # 3. Update parent_id of child to parent.id
+    update_data = CommitmentUpdate(parent_id=parent.id)
+    await CommitmentService.update_commitment(db_session, child.id, test_user.id, update_data)
+    
+    # Verify link was added
+    added_objects = [args[0] for args, _ in db_session.add.call_args_list]
+    link_added = any(isinstance(obj, CommitmentLink) and obj.parent_id == parent.id and obj.child_id == child.id for obj in added_objects)
+    assert link_added
+
+    # 4. Remove parent_id (set to None)
+    # Mock lookup
+    get_commit_res_2 = MagicMock()
+    get_commit_res_2.scalar_one_or_none.return_value = child
+    
+    # Mock links check (existing link found)
+    existing_link = CommitmentLink(parent_id=parent.id, child_id=child.id)
+    links_res_2 = MagicMock()
+    links_res_2.scalars.return_value.all.return_value = [existing_link]
+    
+    db_session.execute.side_effect = [get_commit_res_2, links_res_2]
+    db_session.delete = AsyncMock()
+
+    update_data_null = CommitmentUpdate(parent_id=None)
+    await CommitmentService.update_commitment(db_session, child.id, test_user.id, update_data_null)
+    
+    # Verify the link delete was called
+    db_session.delete.assert_called_with(existing_link)
