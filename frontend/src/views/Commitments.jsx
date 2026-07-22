@@ -540,10 +540,15 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onProm
   const handleTaskDragOver = (e, targetTask) => {
     if (targetTask.status === "completed") return;
     const dm = window.dragManager;
-    if (!dm || dm.sourceType !== "task-card" || dm.sourceColumn !== String(label).toLowerCase()) return;
-    e.preventDefault();
-    if (dragOverTaskId !== targetTask.id) {
-      setDragOverTaskId(targetTask.id);
+    if (!dm) return;
+
+    if (dm.sourceType === "task-card" && dm.sourceColumn === String(label).toLowerCase()) {
+      e.preventDefault();
+      if (dragOverTaskId !== targetTask.id) {
+        setDragOverTaskId(targetTask.id);
+      }
+    } else if (dm.sourceType === "task-card" || dm.sourceType === "list-item") {
+      e.preventDefault();
     }
   };
 

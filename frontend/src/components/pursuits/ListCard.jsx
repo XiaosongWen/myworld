@@ -113,10 +113,15 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
   const handleItemDragOver = (e, targetItem) => {
     if (targetItem.status === "completed") return;
     const dm = window.dragManager;
-    if (!dm || dm.sourceType !== "list-item" || String(dm.sourceParentId) !== String(list.id)) return;
-    e.preventDefault();
-    if (dragOverItemId !== targetItem.id) {
-      setDragOverItemId(targetItem.id);
+    if (!dm) return;
+
+    if (dm.sourceType === "list-item" && String(dm.sourceParentId) === String(list.id)) {
+      e.preventDefault();
+      if (dragOverItemId !== targetItem.id) {
+        setDragOverItemId(targetItem.id);
+      }
+    } else if (dm.sourceType === "list-item" || dm.sourceType === "task-card") {
+      e.preventDefault();
     }
   };
 
