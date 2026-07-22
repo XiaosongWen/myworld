@@ -86,11 +86,11 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
     const sourceType = e.dataTransfer.getData("source-type");
     const sourceParentId = e.dataTransfer.getData("source-parent-id");
 
-    if (sourceType === "list-item" && sourceParentId !== list.id) {
+    if ((sourceType === "list-item" && sourceParentId !== list.id) || sourceType === "task-card") {
       try {
-        await updateCommitment(itemId, { parent_id: list.id });
+        await updateCommitment(itemId, { parent_id: list.id, due_date: null });
       } catch (err) {
-        console.error("Failed to move list item:", err);
+        console.error("Failed to move item to list:", err);
       }
     }
   };

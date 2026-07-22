@@ -49,6 +49,12 @@ export default function Commitments() {
   const [editingCommitment, setEditingCommitment] = useState(null);
   const [selectedDetailId, setSelectedDetailId] = useState(null);
   const [rescheduleTaskId, setRescheduleTaskId] = useState(null);
+  const [clearParentIdOnReschedule, setClearParentIdOnReschedule] = useState(false);
+
+  const handlePromptReschedule = (taskId, clearParent = false) => {
+    setRescheduleTaskId(taskId);
+    setClearParentIdOnReschedule(clearParent);
+  };
 
   const now = new Date();
   const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -321,7 +327,7 @@ export default function Commitments() {
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div className="priority-dot low" /> Low</div>
               </div>
             </div>
-            <TaskGroupView tasks={tasks} todayISO={todayISO} onOpenDetail={(id) => setSelectedDetailId(id)} onEdit={(task) => setEditingCommitment(task)} onPromptReschedule={setRescheduleTaskId} />
+            <TaskGroupView tasks={tasks} todayISO={todayISO} onOpenDetail={(id) => setSelectedDetailId(id)} onEdit={(task) => setEditingCommitment(task)} onPromptReschedule={handlePromptReschedule} />
           </div>
         )}
 
@@ -373,11 +379,16 @@ export default function Commitments() {
           onClose={() => setRescheduleTaskId(null)}
           onConfirm={async (selectedDate) => {
             try {
-              await updateCommitment(rescheduleTaskId, { due_date: selectedDate });
+              const payload = { due_date: selectedDate };
+              if (clearParentIdOnReschedule) {
+                payload.parent_id = null;
+              }
+              await updateCommitment(rescheduleTaskId, payload);
             } catch (err) {
               console.error("Failed to reschedule task:", err);
             }
             setRescheduleTaskId(null);
+            setClearParentIdOnReschedule(false);
           }}
         />
       )}
@@ -489,10 +500,12 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onProm
     const sourceType = e.dataTransfer.getData("source-type");
     const sourceDueDate = e.dataTransfer.getData("source-due-date");
     
-    if (sourceType === "task-card") {
+    if (sourceType === "task-card" || sourceType === "list-item") {
+      const shouldClearParent = sourceType === "list-item";
+      
       if (label === "Today") {
         try {
-          await updateCommitment(taskId, { due_date: todayISO });
+          await updateCommitment(taskId, { due_date: todayISO, parent_id: null });
         } catch (err) {
           console.error("Failed to move task to Today:", err);
         }
@@ -500,8 +513,8 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onProm
         const isFromInbox = !sourceDueDate;
         const isFromToday = sourceDueDate === todayISO;
         
-        if (isFromInbox || isFromToday) {
-          onPromptReschedule?.(taskId);
+        if (isFromInbox || isFromToday || shouldClearParent) {
+          onPromptReschedule?.(taskId, shouldClearParent);
         } else {
           // Already upcoming, keep existing or set tomorrow if somehow empty
           const tomorrow = new Date();
@@ -509,14 +522,14 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onProm
           const tomorrowISO = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
           const targetDate = sourceDueDate || tomorrowISO;
           try {
-            await updateCommitment(taskId, { due_date: targetDate });
+            await updateCommitment(taskId, { due_date: targetDate, parent_id: null });
           } catch (err) {
             console.error("Failed to move task to Upcoming:", err);
           }
         }
       } else if (label === "Inbox") {
         try {
-          await updateCommitment(taskId, { due_date: null });
+          await updateCommitment(taskId, { due_date: null, parent_id: null });
         } catch (err) {
           console.error("Failed to move task to Inbox:", err);
         }
