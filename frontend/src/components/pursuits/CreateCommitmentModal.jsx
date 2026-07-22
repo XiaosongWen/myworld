@@ -216,6 +216,19 @@ export default function CreateCommitmentModal({ defaultType = "habit", commitmen
                       boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
                       borderRadius: "8px",
                       overflow: "hidden",
+                      border: "1px solid var(--border)",
+                      "--epr-bg-color": "var(--bg)",
+                      "--epr-category-navigation-button-active-color": "var(--accent)",
+                      "--epr-hover-bg-color": "var(--surface-hover)",
+                      "--epr-focus-bg-color": "var(--surface-hover)",
+                      "--epr-search-input-bg-color": "var(--surface)",
+                      "--epr-search-input-border-color": "var(--border)",
+                      "--epr-search-input-text-color": "var(--fg)",
+                      "--epr-category-icon-active-color": "var(--accent)",
+                      "--epr-text-color": "var(--fg)",
+                      "--epr-category-label-bg-color": "var(--bg)",
+                      "--epr-category-label-text-color": "var(--fg-muted)",
+                      "--epr-border-color": "var(--border)",
                     }}
                   >
                     <EmojiPicker
