@@ -21,10 +21,16 @@ export default function Sidebar() {
       {/* Brand */}
       <div className="brand">
         <div className="brand-text-wrapper">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--fg)" }}>
-            <path d="M12 2L2 7l10 5 10-5-10-5z" />
-            <path d="M2 17l10 5 10-5" />
-            <path d="M2 12l10 5 10-5" />
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <defs>
+              <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#f54e00" />
+                <stop offset="100%" stopColor="#cf2d56" />
+              </linearGradient>
+            </defs>
+            <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="url(#logo-grad)" fill="rgba(245, 78, 0, 0.1)" />
+            <path d="M2 17l10 5 10-5" stroke="url(#logo-grad)" />
+            <path d="M2 12l10 5 10-5" stroke="url(#logo-grad)" />
           </svg>
           <span className="brand-text">Nest</span>
         </div>
