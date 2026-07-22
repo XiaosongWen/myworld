@@ -154,7 +154,7 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
     <div className="card" onClick={() => onOpenDetail?.(goal.id)} style={{ cursor: onOpenDetail ? "pointer" : "default" }}>
       <div className="goal-header">
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, overflow: "visible", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>🎯 {goal.title}</span>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{goal.config?.icon || "🎯"} {goal.title}</span>
           {(goal.labels || []).map((lbl) => (
             <LabelPill key={lbl.id || lbl.name} label={lbl} compact={(goal.labels || []).length > 2} />
           ))}

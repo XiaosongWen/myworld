@@ -63,7 +63,7 @@ export default function MonthGlance({ habits = [] }) {
     // 1. Commitments with due_date
     (commitments || []).forEach((c) => {
       if (c.due_date) {
-        const icon = c.type === "task" ? "📋" : c.type === "goal" ? "🎯" : c.type === "habit" ? "🔄" : "📝";
+        const icon = c.config?.icon || (c.type === "task" ? "📋" : c.type === "goal" ? "🎯" : c.type === "habit" ? "🔄" : "📝");
         add(c.due_date, {
           id: `due-${c.id}`,
           title: c.title,
@@ -111,7 +111,7 @@ export default function MonthGlance({ habits = [] }) {
             priority: h.commitment.priority,
             timestamp: h.today_record.created_at || h.today_record.updated_at,
             isDone: true,
-            icon: "🔄",
+            icon: h.commitment?.config?.icon || "🔄",
           });
         }
       }

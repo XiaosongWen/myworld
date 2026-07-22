@@ -9,6 +9,13 @@ const TYPES = [
   { id: "list", icon: "📝", label: "List" },
 ];
 
+const EMOJIS = [
+  "🎯", "📋", "🔄", "📝", "📌", "💡", "📅", "🏆", 
+  "💪", "📚", "💻", "🎨", "🎵", "✈️", "🍳", "💼", 
+  "🚗", "🏡", "🍎", "💧", "📈", "💬", "❤️", "🌟", 
+  "🧩", "⏰", "☘️", "🔑", "🍿", "🧘", "🚲", "🐾"
+];
+
 export default function CreateCommitmentModal({ defaultType = "habit", commitmentToEdit = null, onClose }) {
   const { createCommitment, updateCommitment, labels: storeLabels } = usePursuitsStore();
 
@@ -16,6 +23,8 @@ export default function CreateCommitmentModal({ defaultType = "habit", commitmen
 
   const [type, setType] = useState(commitmentToEdit?.type || defaultType || "habit");
   const [title, setTitle] = useState(commitmentToEdit?.title || "");
+  const [icon, setIcon] = useState(commitmentToEdit?.config?.icon || "");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [description, setDescription] = useState(commitmentToEdit?.description || "");
   
   const initialLabels = (commitmentToEdit?.labels || []).map((l) => l.name);
@@ -44,7 +53,10 @@ export default function CreateCommitmentModal({ defaultType = "habit", commitmen
     if (!title.trim()) return;
     setSaving(true);
 
-    const config = { ...(commitmentToEdit?.config || {}) };
+    const config = { 
+      ...(commitmentToEdit?.config || {}),
+      icon: icon || null
+    };
     let priority = isEdit ? (commitmentToEdit.priority || "none") : "none";
     let due_date = isEdit ? commitmentToEdit.due_date : null;
 
@@ -180,26 +192,110 @@ export default function CreateCommitmentModal({ defaultType = "habit", commitmen
             <label style={{ display: "block", fontSize: "13px", fontWeight: "500", marginBottom: "8px", color: "var(--fg-muted)" }}>
               Name
             </label>
-            <input
-              autoFocus
-              id="modal-title-input"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Read 10 pages a day"
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                borderRadius: "8px",
-                border: "1px solid var(--border)",
-                background: "var(--surface)",
-                color: "var(--fg)",
-                fontSize: "14px",
-                outline: "none",
-                boxSizing: "border-box",
-              }}
-              required
-            />
+            <div style={{ display: "flex", gap: "10px", alignItems: "center", position: "relative" }}>
+              <div style={{ position: "relative" }}>
+                <button
+                  type="button"
+                  style={{
+                    width: "46px",
+                    height: "46px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border)",
+                    background: "var(--surface)",
+                    fontSize: "20px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                >
+                  {icon || (TYPES.find((t) => t.id === type)?.icon || "📝")}
+                </button>
+                {showEmojiPicker && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "52px",
+                      left: 0,
+                      zIndex: 1010,
+                      background: "var(--bg)",
+                      border: "1px solid var(--border)",
+                      borderRadius: "8px",
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
+                      padding: "12px",
+                      width: "220px",
+                    }}
+                  >
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: "8px", marginBottom: "8px" }}>
+                      {EMOJIS.map((emoji) => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => {
+                            setIcon(emoji);
+                            setShowEmojiPicker(false);
+                          }}
+                          style={{
+                            background: "none",
+                            border: "none",
+                            fontSize: "18px",
+                            cursor: "pointer",
+                            padding: "4px",
+                            borderRadius: "4px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                          className="emoji-btn"
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ borderTop: "1px solid var(--border)", paddingTop: "8px" }}>
+                      <input
+                        type="text"
+                        placeholder="Custom emoji..."
+                        value={icon}
+                        onChange={(e) => setIcon(e.target.value)}
+                        style={{
+                          width: "100%",
+                          padding: "6px 8px",
+                          borderRadius: "4px",
+                          border: "1px solid var(--border)",
+                          background: "var(--surface-raised)",
+                          color: "var(--fg)",
+                          fontSize: "12px",
+                          outline: "none",
+                          boxSizing: "border-box",
+                        }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+              <input
+                autoFocus
+                id="modal-title-input"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Read 10 pages a day"
+                style={{
+                  flex: 1,
+                  padding: "12px 16px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--border)",
+                  background: "var(--surface)",
+                  color: "var(--fg)",
+                  fontSize: "14px",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+                required
+              />
+            </div>
           </div>
 
           {/* Description */}

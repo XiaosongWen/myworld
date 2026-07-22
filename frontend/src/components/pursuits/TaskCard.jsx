@@ -91,7 +91,7 @@ export default function TaskCard({ task, onToggleStatus, onOpenDetail, onEdit })
           onClick={() => onOpenDetail?.(task.id)}
           title="Open Task details"
         >
-          {task.title}
+          {task.config?.icon ? `${task.config.icon} ` : ""}{task.title}
         </span>
         {itemLabels.map((lbl) => (
           <LabelPill key={lbl.id || lbl.name} label={lbl} compact={isCompact} />
