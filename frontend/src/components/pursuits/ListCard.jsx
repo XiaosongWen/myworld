@@ -24,7 +24,9 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
         const timeB = new Date(b.updated_at || b.completed_at || 0).getTime();
         return timeB - timeA;
       }
-      return 0;
+      const orderA = a.sort_order ?? 0;
+      const orderB = b.sort_order ?? 0;
+      return orderA - orderB;
     });
   const now = new Date();
   const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -65,6 +67,7 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
   };
 
   const [isDragOver, setIsDragOver] = useState(false);
+  const [dragOverItemId, setDragOverItemId] = useState(null);
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -96,6 +99,53 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
     e.dataTransfer.setData("text/plain", item.id);
     e.dataTransfer.setData("source-type", "list-item");
     e.dataTransfer.setData("source-parent-id", list.id);
+  };
+
+  const handleItemDragOver = (e, targetItem) => {
+    if (targetItem.status === "completed") return;
+    e.preventDefault();
+    if (dragOverItemId !== targetItem.id) {
+      setDragOverItemId(targetItem.id);
+    }
+  };
+
+  const handleItemDragLeave = () => {
+    setDragOverItemId(null);
+  };
+
+  const handleItemDrop = async (e, targetItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverItemId(null);
+
+    const dragItemId = e.dataTransfer.getData("text/plain");
+    const sourceType = e.dataTransfer.getData("source-type");
+
+    if (sourceType === "list-item" && dragItemId !== targetItem.id) {
+      const dragItem = items.find(it => it.id === dragItemId);
+      if (!dragItem || dragItem.status === "completed" || targetItem.status === "completed") return;
+
+      const activeItems = items.filter(it => it.status !== "completed");
+      const dragIndex = activeItems.findIndex(it => it.id === dragItemId);
+      const targetIndex = activeItems.findIndex(it => it.id === targetItem.id);
+
+      if (dragIndex !== -1 && targetIndex !== -1) {
+        const reordered = [...activeItems];
+        reordered.splice(dragIndex, 1);
+        reordered.splice(targetIndex, 0, dragItem);
+
+        for (let i = 0; i < reordered.length; i++) {
+          const it = reordered[i];
+          if (it.sort_order !== i) {
+            try {
+              await updateCommitment(it.id, { sort_order: i });
+            } catch (err) {
+              console.error("Failed to update list item sort order:", err);
+            }
+          }
+        }
+      }
+    }
   };
 
   const handleAddItem = async (e) => {
@@ -197,6 +247,9 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
               key={item.id}
               draggable={!isDone}
               onDragStart={(e) => handleItemDragStart(e, item)}
+              onDragOver={(e) => handleItemDragOver(e, item)}
+              onDragLeave={handleItemDragLeave}
+              onDrop={(e) => handleItemDrop(e, item)}
               style={{
                 display: "flex",
                 gap: 8,
@@ -207,6 +260,8 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
                 whiteSpace: "nowrap",
                 minWidth: 0,
                 cursor: isDone ? "default" : "grab",
+                borderTop: dragOverItemId === item.id ? "2px solid var(--accent)" : "2px solid transparent",
+                transition: "border-top 0.1s ease",
               }}
             >
               <div

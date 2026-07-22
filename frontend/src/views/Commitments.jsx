@@ -468,6 +468,7 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onProm
   const [quickTitle, setQuickTitle] = useState("");
   const [showCompleted, setShowCompleted] = useState(true);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [dragOverTaskId, setDragOverTaskId] = useState(null);
 
   const PRIORITY_WEIGHT = { high: 3, medium: 2, med: 2, low: 1, none: 0 };
 
@@ -523,6 +524,53 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onProm
     }
   };
 
+  const handleTaskDragOver = (e, targetTask) => {
+    if (targetTask.status === "completed") return;
+    e.preventDefault();
+    if (dragOverTaskId !== targetTask.id) {
+      setDragOverTaskId(targetTask.id);
+    }
+  };
+
+  const handleTaskDragLeave = () => {
+    setDragOverTaskId(null);
+  };
+
+  const handleTaskDrop = async (e, targetTask) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverTaskId(null);
+
+    const dragTaskId = e.dataTransfer.getData("text/plain");
+    const sourceType = e.dataTransfer.getData("source-type");
+
+    if (sourceType === "task-card" && dragTaskId !== targetTask.id) {
+      const dragTask = tasks.find(t => t.id === dragTaskId);
+      if (!dragTask || dragTask.status === "completed" || targetTask.status === "completed") return;
+
+      const activeTasks = sortedTasks.filter(t => t.status !== "completed");
+      const dragIndex = activeTasks.findIndex(t => t.id === dragTaskId);
+      const targetIndex = activeTasks.findIndex(t => t.id === targetTask.id);
+
+      if (dragIndex !== -1 && targetIndex !== -1) {
+        const reordered = [...activeTasks];
+        reordered.splice(dragIndex, 1);
+        reordered.splice(targetIndex, 0, dragTask);
+
+        for (let i = 0; i < reordered.length; i++) {
+          const t = reordered[i];
+          if (t.sort_order !== i) {
+            try {
+              await updateCommitment(t.id, { sort_order: i });
+            } catch (err) {
+              console.error("Failed to update task sort order:", err);
+            }
+          }
+        }
+      }
+    }
+  };
+
   const filteredTasks = tasks.filter((t) => showCompleted || t.status !== "completed");
 
   const sortedTasks = [...filteredTasks].sort((a, b) => {
@@ -535,6 +583,10 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onProm
       const timeB = new Date(b.updated_at || b.completed_at || 0).getTime();
       return timeB - timeA;
     }
+    const orderA = a.sort_order ?? 0;
+    const orderB = b.sort_order ?? 0;
+    if (orderA !== orderB) return orderA - orderB;
+
     const weightA = PRIORITY_WEIGHT[a.priority?.toLowerCase()] ?? 0;
     const weightB = PRIORITY_WEIGHT[b.priority?.toLowerCase()] ?? 0;
     if (weightB !== weightA) {
@@ -611,7 +663,18 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onProm
       </h2>
       <div className="task-list">
         {sortedTasks.map((t) => (
-          <TaskCard key={t.id} task={t} onToggleStatus={() => handleToggle(t)} onOpenDetail={onOpenDetail} onEdit={onEdit} />
+          <div
+            key={t.id}
+            onDragOver={(e) => handleTaskDragOver(e, t)}
+            onDragLeave={handleTaskDragLeave}
+            onDrop={(e) => handleTaskDrop(e, t)}
+            style={{
+              borderTop: dragOverTaskId === t.id ? "2px solid var(--accent)" : "2px solid transparent",
+              transition: "border-top 0.1s ease",
+            }}
+          >
+            <TaskCard task={t} onToggleStatus={() => handleToggle(t)} onOpenDetail={onOpenDetail} onEdit={onEdit} />
+          </div>
         ))}
         {tasks.length === 0 && <p className="text-muted text-sm">All clear ✓</p>}
         <div className="input-bar" style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
