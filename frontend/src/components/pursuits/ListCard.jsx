@@ -64,6 +64,40 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
     }
   };
 
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+
+    const itemId = e.dataTransfer.getData("text/plain");
+    const sourceType = e.dataTransfer.getData("source-type");
+    const sourceParentId = e.dataTransfer.getData("source-parent-id");
+
+    if (sourceType === "list-item" && sourceParentId !== list.id) {
+      try {
+        await updateCommitment(itemId, { parent_id: list.id });
+      } catch (err) {
+        console.error("Failed to move list item:", err);
+      }
+    }
+  };
+
+  const handleItemDragStart = (e, item) => {
+    e.dataTransfer.setData("text/plain", item.id);
+    e.dataTransfer.setData("source-type", "list-item");
+    e.dataTransfer.setData("source-parent-id", list.id);
+  };
+
   const handleAddItem = async (e) => {
     if (e.key === "Enter" && itemInput.trim()) {
       e.preventDefault();
@@ -84,7 +118,17 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
   };
 
   return (
-    <div className="card">
+    <div
+      className="card"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      style={{
+        border: isDragOver ? "2px dashed var(--accent)" : "1px solid var(--border)",
+        boxShadow: isDragOver ? "0 0 0 4px var(--accent-glow)" : undefined,
+        transition: "border var(--transition-fast), box-shadow var(--transition-fast)",
+      }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, overflow: "visible", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
           <span
@@ -143,7 +187,6 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
         </p>
       )}
 
-      {/* List items */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {items.map((item) => {
           const isDone = item.status === "completed";
@@ -152,6 +195,8 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
           return (
             <div
               key={item.id}
+              draggable={!isDone}
+              onDragStart={(e) => handleItemDragStart(e, item)}
               style={{
                 display: "flex",
                 gap: 8,
@@ -161,6 +206,7 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
                 overflow: "visible",
                 whiteSpace: "nowrap",
                 minWidth: 0,
+                cursor: isDone ? "default" : "grab",
               }}
             >
               <div

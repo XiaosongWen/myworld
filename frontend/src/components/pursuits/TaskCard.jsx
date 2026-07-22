@@ -32,6 +32,11 @@ export default function TaskCard({ task, onToggleStatus, onOpenDetail, onEdit })
 
   const isPastDue = task.due_date && task.due_date < todayISO && !isDone;
 
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData("text/plain", task.id);
+    e.dataTransfer.setData("source-type", "task-card");
+  };
+
   const handleStatusClick = (e) => {
     e.stopPropagation();
     if (isDoneBeforeToday) return;
@@ -39,7 +44,12 @@ export default function TaskCard({ task, onToggleStatus, onOpenDetail, onEdit })
   };
 
   return (
-    <div className="task-item">
+    <div
+      className="task-item"
+      draggable={!isDone}
+      onDragStart={handleDragStart}
+      style={{ cursor: isDone ? "default" : "grab" }}
+    >
       <span
         className="task-status"
         onClick={handleStatusClick}

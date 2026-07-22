@@ -438,8 +438,43 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit }) {
   const { createCommitment, updateCommitment } = usePursuitsStore();
   const [quickTitle, setQuickTitle] = useState("");
   const [showCompleted, setShowCompleted] = useState(true);
+  const [isDragOver, setIsDragOver] = useState(false);
 
   const PRIORITY_WEIGHT = { high: 3, medium: 2, med: 2, low: 1, none: 0 };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const taskId = e.dataTransfer.getData("text/plain");
+    const sourceType = e.dataTransfer.getData("source-type");
+    
+    if (sourceType === "task-card") {
+      let nextDueDate = null;
+      if (label === "Today") {
+        nextDueDate = todayISO;
+      } else if (label === "Upcoming") {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        nextDueDate = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+      }
+      
+      try {
+        await updateCommitment(taskId, { due_date: nextDueDate });
+      } catch (err) {
+        console.error("Failed to move task:", err);
+      }
+    }
+  };
 
   const filteredTasks = tasks.filter((t) => showCompleted || t.status !== "completed");
 
@@ -490,7 +525,17 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit }) {
   };
 
   return (
-    <div className="card">
+    <div
+      className="card"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      style={{
+        border: isDragOver ? "2px dashed var(--accent)" : "1px solid var(--border)",
+        boxShadow: isDragOver ? "0 0 0 4px var(--accent-glow)" : undefined,
+        transition: "border var(--transition-fast), box-shadow var(--transition-fast)",
+      }}
+    >
       <h2 style={{ fontSize: 16, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span>{icon} {label}</span>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
