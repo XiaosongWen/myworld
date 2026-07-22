@@ -29,7 +29,7 @@ const TAB_MAP = {
 export default function Commitments() {
   const { tab } = useParams();
   const navigate = useNavigate();
-  const { commitments, labels, daily, records, fetchCommitments, fetchLabels, fetchDaily, fetchRecords, uncheckHabit, checkInHabit, loading, error } = usePursuitsStore();
+  const { commitments, labels, daily, records, fetchCommitments, fetchLabels, fetchDaily, fetchRecords, uncheckHabit, checkInHabit, updateCommitment, loading, error } = usePursuitsStore();
   
   const filter = TAB_MAP[tab] || "all";
 
