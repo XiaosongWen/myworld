@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import { useState } from "react";
 
 const THEMES = [
@@ -20,7 +20,7 @@ export default function Sidebar() {
     <aside className={`sidebar${collapsed ? " collapsed" : ""}`}>
       {/* Brand */}
       <div className="brand">
-        <div className="brand-text-wrapper">
+        <Link to="/" className="brand-text-wrapper" style={{ textDecoration: "none" }}>
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
             <defs>
               <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -48,7 +48,7 @@ export default function Sidebar() {
           >
             Nest
           </span>
-        </div>
+        </Link>
         <button
           className="icon-btn sidebar-toggle"
           onClick={() => setCollapsed((c) => !c)}
