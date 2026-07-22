@@ -22,11 +22,10 @@ export default function Sidebar() {
       <div className="brand">
         <div className="brand-text-wrapper">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--fg)" }}>
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            <path d="M2 12h20" />
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
           </svg>
-          <span className="brand-text">MyWorld</span>
+          <span className="brand-text">Nest</span>
         </div>
         <button
           className="icon-btn sidebar-toggle"
