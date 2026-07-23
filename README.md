@@ -61,8 +61,8 @@ You can bundle both the frontend build assets and the backend API into a single 
 # Build locally without pushing
 ./scripts/build-docker.sh myworld latest
 
-# Build locally and push to Docker Hub
-./scripts/build-docker.sh username/myworld latest --push
+# Build locally and push to Docker Hub (replace <dockerhub-username> with your Docker Hub handle)
+./scripts/build-docker.sh <dockerhub-username>/myworld latest --push
 ```
 
 Or directly via Docker:
