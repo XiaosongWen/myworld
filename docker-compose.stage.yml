@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ${APP_IMAGE:-myworld:stage}
+    image: ${APP_IMAGE:-mynest:stage}
     container_name: ${APP_CONTAINER_NAME:-myworld-stage-app}
     environment:
       APP_ENV: staging

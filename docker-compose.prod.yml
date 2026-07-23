@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ${APP_IMAGE:-myworld:latest}
+    image: ${APP_IMAGE:-mynest:latest}
     container_name: ${APP_CONTAINER_NAME:-myworld-prod-app}
     environment:
       APP_ENV: prod

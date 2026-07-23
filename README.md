@@ -59,16 +59,16 @@ You can bundle both the frontend build assets and the backend API into a single 
 
 ```bash
 # Build image locally
-./scripts/build-docker.sh myworld latest
+./scripts/build-docker.sh mynest latest
 
-# Build and push image to Docker Hub (defaults to DOCKERHUB_USERNAME env var or your username)
-DOCKERHUB_USERNAME="xiaosongwen" ./scripts/build-docker.sh myworld latest --push
+# Build and push image to Docker Hub
+DOCKERHUB_USERNAME="tomaswen" ./scripts/build-docker.sh mynest latest --push
 ```
 
 Or directly via Docker:
 
 ```bash
-docker build -t myworld:latest .
+docker build -t mynest:latest .
 ```
 
 ---
@@ -123,4 +123,4 @@ Access the production app at `http://localhost:8000`.
 
 ## 📦 Automated Release & Docker Hub Publication
 
-When a GitHub Release is published, the GitHub Actions workflow (`.github/workflows/docker-release.yml`) automatically builds the multi-stage Docker image and pushes it to Docker Hub under `${DOCKERHUB_USERNAME}/myworld:latest` and tagged release versions (e.g. `v1.0.0`).
+When a GitHub Release is published, the GitHub Actions workflow (`.github/workflows/docker-release.yml`) automatically builds the multi-stage Docker image and pushes it to Docker Hub under `${DOCKERHUB_USERNAME}/mynest:latest` and tagged release versions (e.g. `v1.0.0`).
