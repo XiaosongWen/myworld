@@ -53,12 +53,16 @@ Visit the app at `http://localhost:5173`.
 
 ---
 
-### 2. Building the Unified Docker Image Locally
+### 2. Building & Pushing the Unified Docker Image Locally
 
 You can bundle both the frontend build assets and the backend API into a single image using the build script:
 
 ```bash
+# Build locally without pushing
 ./scripts/build-docker.sh myworld latest
+
+# Build locally and push to Docker Hub
+./scripts/build-docker.sh username/myworld latest --push
 ```
 
 Or directly via Docker:

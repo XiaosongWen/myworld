@@ -3,6 +3,7 @@ set -e
 
 IMAGE_NAME=${1:-"myworld"}
 IMAGE_TAG=${2:-"latest"}
+PUSH_FLAG=${3:-"--no-push"}
 
 FULL_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
 
@@ -18,3 +19,13 @@ docker build -t "${FULL_IMAGE}" -f "${REPO_ROOT}/Dockerfile" "${REPO_ROOT}"
 echo "=========================================="
 echo "Successfully built ${FULL_IMAGE}"
 echo "=========================================="
+
+if [ "${PUSH_FLAG}" = "--push" ] || [ "${PUSH_FLAG}" = "-p" ]; then
+    echo "=========================================="
+    echo "Pushing Docker Image: ${FULL_IMAGE}"
+    echo "=========================================="
+    docker push "${FULL_IMAGE}"
+    echo "=========================================="
+    echo "Successfully pushed ${FULL_IMAGE}"
+    echo "=========================================="
+fi
