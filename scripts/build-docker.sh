@@ -1,11 +1,19 @@
 #!/usr/bin/env bash
 set -e
 
-IMAGE_NAME=${1:-"myworld"}
+# Default Docker Hub username / repository namespace (override via DOCKERHUB_USERNAME env var or 1st argument)
+DEFAULT_DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME:-xiaosongwen}"
+
+INPUT_NAME=${1:-"myworld"}
 IMAGE_TAG=${2:-"latest"}
 PUSH_FLAG=${3:-"--no-push"}
 
-FULL_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
+# Prepend Docker Hub username if not already included in INPUT_NAME
+if [[ "${INPUT_NAME}" != *"/"* ]]; then
+    FULL_IMAGE="${DEFAULT_DOCKERHUB_USERNAME}/${INPUT_NAME}:${IMAGE_TAG}"
+else
+    FULL_IMAGE="${INPUT_NAME}:${IMAGE_TAG}"
+fi
 
 echo "=========================================="
 echo "Building Unified Docker Image: ${FULL_IMAGE}"

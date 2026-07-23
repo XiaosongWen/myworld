@@ -58,11 +58,11 @@ Visit the app at `http://localhost:5173`.
 You can bundle both the frontend build assets and the backend API into a single image using the build script:
 
 ```bash
-# Build locally without pushing
+# Build image locally
 ./scripts/build-docker.sh myworld latest
 
-# Build locally and push to Docker Hub (replace <dockerhub-username> with your Docker Hub handle)
-./scripts/build-docker.sh <dockerhub-username>/myworld latest --push
+# Build and push image to Docker Hub (defaults to DOCKERHUB_USERNAME env var or your username)
+DOCKERHUB_USERNAME="xiaosongwen" ./scripts/build-docker.sh myworld latest --push
 ```
 
 Or directly via Docker:
