@@ -23,7 +23,7 @@ We will refactor the backend to load configurations dynamically using a hybrid a
 
 Create `backend/configs/dev.yaml`:
 ```yaml
-storage_path: ./myworld-storage
+storage_path: ./mynest-storage
 ```
 
 Create `backend/configs/staging.yaml`:
@@ -45,9 +45,9 @@ import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+asyncpg://myworld:myworld@localhost:5432/myworld"
+    database_url: str = "postgresql+asyncpg://mynest:mynest@localhost:5432/mynest"
     redis_url: str = "redis://localhost:6379"
-    storage_path: str = "./myworld-storage"
+    storage_path: str = "./mynest-storage"
 
     model_config = SettingsConfigDict(env_file="../.env", env_file_encoding="utf-8")
 
@@ -69,7 +69,7 @@ Key points:
 backend:
   environment:
     APP_ENV: staging
-    DATABASE_URL: postgresql+asyncpg://...
+    DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-mynest}:${POSTGRES_PASSWORD:-mynest}@postgres:5432/${POSTGRES_DB:-mynest_stage}
     REDIS_URL: redis://redis:6379
     STORAGE_PATH: /app/storage
 ```
@@ -82,7 +82,7 @@ Create at repo root (`.env`):
 ```env
 # Local development defaults
 APP_ENV=dev
-# DATABASE_URL=postgresql+asyncpg://myworld:myworld@localhost:5432/myworld
+# DATABASE_URL=postgresql+asyncpg://mynest:mynest@localhost:5432/mynest
 # REDIS_URL=redis://localhost:6379
 ```
 
