@@ -157,6 +157,23 @@ class CommitmentService:
         if "parent_id" in data.model_fields_set:
             new_parent_id = data.parent_id
             
+            # Check for circular dependency: walk ancestors of new_parent_id
+            # to ensure commitment_id is not among them
+            if new_parent_id is not None:
+                if new_parent_id == commitment_id:
+                    raise ValueError("A commitment cannot be its own parent")
+                visited = {commitment_id}
+                current = new_parent_id
+                while current is not None:
+                    if current in visited:
+                        raise ValueError("Circular parent-child dependency detected")
+                    visited.add(current)
+                    ancestor_link_res = await db.execute(
+                        select(CommitmentLink.parent_id).where(CommitmentLink.child_id == current)
+                    )
+                    ancestor_link = ancestor_link_res.scalar_one_or_none()
+                    current = ancestor_link
+
             # Delete old parent links
             old_parent_links_res = await db.execute(
                 select(CommitmentLink).where(CommitmentLink.child_id == commitment_id)

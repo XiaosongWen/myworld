@@ -89,11 +89,11 @@ export default function CreateCommitmentModal({ defaultType = "habit", commitmen
       } else {
         await createCommitment({ ...payload, status: "active" });
       }
-      onClose();
     } catch (err) {
       console.error(err);
     } finally {
       setSaving(false);
+      onClose();
     }
   };
 

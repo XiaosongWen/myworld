@@ -1,8 +1,12 @@
 from datetime import datetime, date
+import ipaddress
+import logging
 import re
 import time
 from typing import List, Optional, Tuple
 import httpx
+
+logger = logging.getLogger(__name__)
 
 from schemas.weather import LocationInfo, LocationSearchResult, WeatherForecastItem, WeatherForecastResult
 
@@ -39,8 +43,9 @@ WMO_CODE_MAP: dict[int, Tuple[str, str]] = {
 }
 
 CACHE_TTL_SECONDS = 900  # 15 minutes
+MAX_CACHE_ENTRIES = 256
 _weather_cache: dict[Tuple[float, float], Tuple[float, WeatherForecastResult]] = {}
-_ip_location_cache: Tuple[float, LocationInfo] | None = None
+_ip_location_cache: dict[str, Tuple[float, LocationInfo]] = {}
 
 
 def get_wmo_info(code: int) -> Tuple[str, str]:
@@ -64,7 +69,6 @@ class WeatherService:
         lat: Optional[float] = None,
         lon: Optional[float] = None,
     ) -> LocationInfo:
-        global _ip_location_cache
         now = time.time()
 
         # Case 1: Browser or user provided lat & lon -> reverse geocode
@@ -78,18 +82,30 @@ class WeatherService:
                         city = data.get("city") or data.get("locality") or data.get("localityInfo", {}).get("administrative", [{}])[0].get("name") or "Unknown City"
                         region = data.get("principalSubdivision") or data.get("countryName") or ""
                         return LocationInfo(city=city, region=region, lat=lat, lon=lon)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Reverse geocoding failed for ({lat}, {lon}): {e}")
             return LocationInfo(city="Local Area", region="", lat=lat, lon=lon)
 
         # Case 2: IP-based resolution (or public egress IP if client_ip is local)
-        if _ip_location_cache and (now - _ip_location_cache[0] < CACHE_TTL_SECONDS):
-            return _ip_location_cache[1]
+        # Validate client_ip is a well-formed IP address
+        validated_ip = None
+        if client_ip:
+            try:
+                ipaddress.ip_address(client_ip)
+                validated_ip = client_ip
+            except ValueError:
+                logger.warning(f"Invalid client IP rejected: {client_ip!r}")
+
+        cache_key = validated_ip or "__default__"
+        if cache_key in _ip_location_cache:
+            cached_time, cached_loc = _ip_location_cache[cache_key]
+            if now - cached_time < CACHE_TTL_SECONDS:
+                return cached_loc
 
         try:
-            target_url = "http://ip-api.com/json/"
-            if client_ip and client_ip not in ("127.0.0.1", "::1", "localhost") and not client_ip.startswith("192.168."):
-                target_url = f"http://ip-api.com/json/{client_ip}"
+            target_url = "https://ip-api.com/json/"
+            if validated_ip and validated_ip not in ("127.0.0.1", "::1") and not validated_ip.startswith("192.168."):
+                target_url = f"https://ip-api.com/json/{validated_ip}"
 
             async with httpx.AsyncClient(timeout=4.0) as client:
                 res = await client.get(target_url)
@@ -103,14 +119,14 @@ class WeatherService:
                             lon=float(data.get("lon", -87.6298)),
                             timezone=data.get("timezone"),
                         )
-                        _ip_location_cache = (now, loc)
+                        _ip_location_cache[cache_key] = (now, loc)
                         return loc
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"IP geolocation failed for {cache_key}: {e}")
 
         # Ultimate fallback
         fallback = LocationInfo(city="Unknown City", region="", lat=41.8781, lon=-87.6298, timezone="America/Chicago")
-        _ip_location_cache = (now, fallback)
+        _ip_location_cache[cache_key] = (now, fallback)
         return fallback
 
     @staticmethod
@@ -124,7 +140,7 @@ class WeatherService:
         # Check if 5-digit US zipcode
         if re.match(r"^\d{5}$", q):
             try:
-                zip_url = f"http://api.zippopotam.us/us/{q}"
+                zip_url = f"https://api.zippopotam.us/us/{q}"
                 async with httpx.AsyncClient(timeout=4.0) as client:
                     res = await client.get(zip_url)
                     if res.status_code == 200:
@@ -145,8 +161,8 @@ class WeatherService:
                                     lon=lon,
                                 )
                             )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Zipcode lookup failed for {q}: {e}")
 
         # Search Open-Meteo Geocoding API
         try:
@@ -176,8 +192,8 @@ class WeatherService:
                                     timezone=tz,
                                 )
                             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Geocoding search failed for query={q!r}: {e}")
 
         return results
 
@@ -260,9 +276,14 @@ class WeatherService:
 
             result = WeatherForecastResult(location=location, forecast=items)
             if items:
+                # Evict oldest entries if cache is too large
+                if len(_weather_cache) >= MAX_CACHE_ENTRIES:
+                    oldest_key = min(_weather_cache, key=lambda k: _weather_cache[k][0])
+                    del _weather_cache[oldest_key]
                 _weather_cache[cache_key] = (now, result)
                 return result
-        except Exception:
+        except Exception as e:
+            logger.warning(f"Weather forecast fetch failed for ({cache_key}): {e}")
             if cache_key in _weather_cache:
                 return _weather_cache[cache_key][1]
 

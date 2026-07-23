@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, memo } from "react";
 import usePursuitsStore from "../stores/pursuitsStore";
 import HabitChecklist from "../components/pursuits/HabitChecklist";
 import TaskCard from "../components/pursuits/TaskCard";
@@ -105,9 +105,42 @@ function getZonedTimeParts(date, timeZone) {
   }
 }
 
+/* ── Isolated FlipClock component ──
+ * Keeps the 1-second setInterval re-renders isolated here
+ * instead of forcing the entire DailyLog dashboard to re-render.
+ */
+const FlipClock = memo(function FlipClock({ locationTimezone, locationName, onClickLocation }) {
+  const now = useLiveClock();
+  const { hours, minutes, seconds, dateLong } = getZonedTimeParts(now, locationTimezone);
+
+  return (
+    <div className="flip-clock-container">
+      <div style={{ display: "flex", alignItems: "flex-end", gap: "12px" }}>
+        <div className="flip-clock">
+          <div className="flip-panel"><span>{hours}</span></div>
+          <span className="flip-colon">:</span>
+          <div className="flip-panel"><span>{minutes}</span></div>
+          <span className="flip-colon">:</span>
+          <div className="flip-panel"><span>{seconds}</span></div>
+        </div>
+      </div>
+      <div style={{ fontSize: "16px", fontWeight: 600, color: "var(--fg)", display: "flex", alignItems: "center", gap: "8px" }}>
+        <span
+          style={{ color: "var(--fg-muted)", fontWeight: 500, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}
+          onClick={onClickLocation}
+          title="Click to change city or zipcode"
+        >
+          {locationName || Intl.DateTimeFormat().resolvedOptions().timeZone?.split("/").pop()?.replace("_", " ") || "Local"}
+          <span style={{ fontSize: "12px", opacity: 0.6 }}>✏️</span>
+        </span>
+        {dateLong}
+      </div>
+    </div>
+  );
+});
+
 export default function DailyLog() {
   const { daily, commitments, fetchDaily, fetchLabels, fetchCommitments, checkInHabit, uncheckHabit, createCommitment, updateCommitment } = usePursuitsStore();
-  const now = useLiveClock();
   const [showCreate, setShowCreate] = useState(false);
   const [createType, setCreateType] = useState("task");
   const [editingCommitment, setEditingCommitment] = useState(null);
@@ -156,8 +189,6 @@ export default function DailyLog() {
     setCreateType(type);
     setShowCreate(true);
   };
-
-  const { hours, minutes, seconds, dateLong } = getZonedTimeParts(now, locationTimezone);
 
   useEffect(() => {
     fetchDaily(todayISO());
@@ -275,28 +306,11 @@ export default function DailyLog() {
       {/* ── Page Header ── */}
       <header className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-          <div className="flip-clock-container">
-            <div style={{ display: "flex", alignItems: "flex-end", gap: "12px" }}>
-              <div className="flip-clock">
-                <div className="flip-panel"><span>{hours}</span></div>
-                <span className="flip-colon">:</span>
-                <div className="flip-panel"><span>{minutes}</span></div>
-                <span className="flip-colon">:</span>
-                <div className="flip-panel"><span>{seconds}</span></div>
-              </div>
-            </div>
-            <div style={{ fontSize: "16px", fontWeight: 600, color: "var(--fg)", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span
-                style={{ color: "var(--fg-muted)", fontWeight: 500, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}
-                onClick={() => setShowLocationPicker(true)}
-                title="Click to change city or zipcode"
-              >
-                {locationName || Intl.DateTimeFormat().resolvedOptions().timeZone?.split("/").pop()?.replace("_", " ") || "Local"}
-                <span style={{ fontSize: "12px", opacity: 0.6 }}>✏️</span>
-              </span>
-              {dateLong}
-            </div>
-          </div>
+          <FlipClock
+            locationTimezone={locationTimezone}
+            locationName={locationName}
+            onClickLocation={() => setShowLocationPicker(true)}
+          />
         </div>
 
         {/* Weather + Progress right column */}

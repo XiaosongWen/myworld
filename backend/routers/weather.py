@@ -28,7 +28,7 @@ async def get_weather_forecast(
 @router.get("/api/v1/weather/locations/search", response_model=ListResponse[LocationSearchResult])
 async def search_weather_locations(
     request: Request,
-    q: str = Query(..., min_length=1),
+    q: str = Query(..., min_length=1, max_length=100),
 ):
     results = await WeatherService.search_locations(query=q)
     request_id = getattr(request.state, "request_id", "UNKNOWN")
