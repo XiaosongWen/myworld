@@ -28,13 +28,13 @@ MyWorld can be run locally for development or deployed to staging/production env
 
 ---
 
-### 1. Local Development Stack (`docker-compose.dev.yml`)
+### 1. Local Development Stack (`docker-compose.infra.yml`)
 
 In development, PostgreSQL and Redis run inside Docker containers while the FastAPI backend and React Vite frontend run on your host system.
 
 ```bash
 # Start PostgreSQL (port 5432) and Redis (port 6379)
-docker compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.infra.yml up -d
 
 # Start Backend (in backend/ directory)
 cd backend
@@ -106,8 +106,14 @@ docker compose --env-file .env -f docker-compose.infra.yml up -d
 
 ### 5. Running Staging Application (`docker-compose.stage.yml`)
 
-Run the staging app connected to `mynest_stage` database:
+Run the staging app connected to `mynest_stage` database. **Requires shared infrastructure to be running first** (see Step 4).
 
+You can either run them together with combined compose files:
+```bash
+docker compose -f docker-compose.infra.yml -f docker-compose.stage.yml up -d --build
+```
+
+Or start the app separately (if infra is already running):
 ```bash
 APP_IMAGE=tomaswen/mynest:stage \
 APP_CONTAINER_NAME=mynest-stage-app \
@@ -126,8 +132,13 @@ Access staging app at `http://localhost:8001`.
 
 ### 6. Running Production Application (`docker-compose.prod.yml`)
 
-Run the production app connected to `mynest_prod` database:
+Run the production app connected to `mynest_prod` database. **Requires shared infrastructure to be running first** (see Step 4).
 
+```bash
+docker compose -f docker-compose.infra.yml -f docker-compose.prod.yml up -d --build
+```
+
+Or start the app separately (if infra is already running):
 ```bash
 APP_IMAGE=tomaswen/mynest:latest \
 APP_CONTAINER_NAME=mynest-prod-app \

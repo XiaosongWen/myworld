@@ -26,10 +26,13 @@ MyWorld is a personal life OS — an all-in-one app for habit tracking, task man
 
 ```bash
 # Start dev infrastructure (PostgreSQL + Redis only)
-docker compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.infra.yml up -d
 
-# Start staging (all services in Docker, self-contained)
-docker compose -f docker-compose.staging.yml up -d
+# Start staging (app service, needs infra running)
+docker compose -f docker-compose.stage.yml up -d
+
+# Start production (app service, needs infra running)
+docker compose -f docker-compose.prod.yml up -d
 
 # Backend dev (run locally, needs dev infra running)
 cd backend && uvicorn main:app --reload

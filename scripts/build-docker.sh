@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
-# Default Docker Hub username / repository namespace (override via DOCKERHUB_USERNAME env var or 1st argument)
-DEFAULT_DOCKERHUB_USERNAME="tomaswen"
+# Default Docker Hub username / repository namespace (override via DOCKERHUB_USERNAME env var)
+DEFAULT_DOCKERHUB_USERNAME="${DOCKERHUB_USERNAME:-tomaswen}"
 
 INPUT_NAME=${1:-"mynest"}
 IMAGE_TAG=${2:-"latest"}

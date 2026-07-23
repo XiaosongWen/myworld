@@ -26,7 +26,7 @@ app = FastAPI(title="MyWorld API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,9 +50,12 @@ if os.path.exists(static_dir):
     async def serve_spa(full_path: str):
         if full_path.startswith("api/"):
             return None
-        file_path = os.path.join(static_dir, full_path)
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return FileResponse(file_path)
+        # Prevent path traversal: normalize and verify path stays within static_dir
+        safe_path = os.path.normpath(os.path.join(static_dir, full_path))
+        if not safe_path.startswith(os.path.normpath(static_dir) + os.sep) and safe_path != os.path.normpath(static_dir):
+            return FileResponse(os.path.join(static_dir, "index.html"))
+        if os.path.exists(safe_path) and os.path.isfile(safe_path):
+            return FileResponse(safe_path)
         return FileResponse(os.path.join(static_dir, "index.html"))
 
 

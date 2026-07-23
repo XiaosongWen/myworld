@@ -30,11 +30,14 @@ async def create_db():
         else:
             print(f'Database {target_db} already exists.')
         await conn.close()
+    except asyncpg.exceptions.DuplicateDatabaseError:
+        print(f'Database {target_db} already exists (caught DuplicateDatabaseError).')
     except Exception as e:
-        print(f'Database check/creation notice: {e}')
+        print(f'ERROR: Database check/creation failed: {e}')
+        raise SystemExit(1)
 
 asyncio.run(create_db())
-" || true
+"
 fi
 
 echo "Running Alembic migrations..."
