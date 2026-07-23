@@ -1,0 +1,23 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${APP_IMAGE}
+    container_name: ${APP_CONTAINER_NAME}
+    environment:
+      APP_ENV: staging
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      STORAGE_PATH: ${STORAGE_PATH}
+    ports:
+      - "${APP_PORT}:8000"
+    volumes:
+      - ${STORAGE_DATA_DIR}:/app/storage
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    restart: ${RESTART_POLICY}

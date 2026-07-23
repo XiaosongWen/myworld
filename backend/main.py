@@ -1,7 +1,10 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from core.logger import setup_logging
 from core.setup import AppSetup
@@ -23,7 +26,7 @@ app = FastAPI(title="MyWorld API", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -37,4 +40,22 @@ app.include_router(user_router)
 app.include_router(test_router)
 app.include_router(labels_router)
 app.include_router(weather_router)
+
+# Serve static frontend files if directory exists
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+if os.path.exists(static_dir):
+    app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        if full_path.startswith("api/"):
+            return None
+        # Prevent path traversal: normalize and verify path stays within static_dir
+        safe_path = os.path.normpath(os.path.join(static_dir, full_path))
+        if not safe_path.startswith(os.path.normpath(static_dir) + os.sep) and safe_path != os.path.normpath(static_dir):
+            return FileResponse(os.path.join(static_dir, "index.html"))
+        if os.path.exists(safe_path) and os.path.isfile(safe_path):
+            return FileResponse(safe_path)
+        return FileResponse(os.path.join(static_dir, "index.html"))
+
 

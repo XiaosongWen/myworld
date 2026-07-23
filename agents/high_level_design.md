@@ -432,6 +432,14 @@ myworld/
     └── seed.py                    # Optional: seed demo data
 ```
 
+- **Phase 1 Stack (local dev):**
+  - Host OS runs `uvicorn main:app --reload` (FastAPI) and `npm run dev` (Vite, port 5173 with `/api` proxying to `http://localhost:8000`).
+  - Docker Compose runs Postgres pgvector (`mynest-postgres:5432`) and Redis (`mynest-redis:6379`).
+
+- **Production Target (Phase 2+):**
+  - Single multi-stage Docker image (`mynest`) containing Node-built static frontend assets and FastAPI backend.
+  - Deployed alongside Postgres pgvector and Redis via `docker-compose.prod.yml`.
+
 ---
 
 ## 8. Development Roadmap

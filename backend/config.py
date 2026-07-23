@@ -1,12 +1,21 @@
-from pydantic_settings import BaseSettings
+import os
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql+asyncpg://myworld:myworld@localhost:5432/myworld"
+    app_env: str = "dev"
+    database_url: str = "postgresql+asyncpg://mynest:mynest@localhost:5432/mynest"
     redis_url: str = "redis://localhost:6379"
-    storage_path: str = "./myworld-storage"
+    storage_path: str = "./mynest-storage"
 
-    model_config = {"env_file": "../.env", "env_file_encoding": "utf-8", "extra": "ignore"}
+    model_config = SettingsConfigDict(env_file="../.env", env_file_encoding="utf-8", extra="ignore")
 
 
-settings = Settings()
+_env = os.environ.get("APP_ENV", "dev")
+_yaml_path = os.path.join(os.path.dirname(__file__), "configs", f"{_env}.yaml")
+
+if os.path.exists(_yaml_path):
+    settings = Settings(_yaml_file=_yaml_path)
+else:
+    settings = Settings()
+
