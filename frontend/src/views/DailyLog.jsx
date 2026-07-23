@@ -190,11 +190,23 @@ export default function DailyLog() {
     setShowCreate(true);
   };
 
+  const [currentDate, setCurrentDate] = useState(todayISO);
+
   useEffect(() => {
-    fetchDaily(todayISO());
+    const timer = setInterval(() => {
+      const today = todayISO();
+      if (today !== currentDate) {
+        setCurrentDate(today);
+      }
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [currentDate]);
+
+  useEffect(() => {
+    fetchDaily(currentDate);
     fetchLabels();
     fetchCommitments();
-  }, [fetchDaily, fetchLabels, fetchCommitments]);
+  }, [currentDate, fetchDaily, fetchLabels, fetchCommitments]);
 
   const habits = [...(daily?.habits || [])].sort(
     (a, b) => (b.commitment?.progress?.streak ?? 0) - (a.commitment?.progress?.streak ?? 0)

@@ -586,15 +586,13 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onProm
         reordered.splice(dragIndex, 1);
         reordered.splice(targetIndex, 0, dragTask);
 
-        for (let i = 0; i < reordered.length; i++) {
-          const t = reordered[i];
-          if (t.sort_order !== i) {
-            try {
-              await updateCommitment(t.id, { sort_order: i });
-            } catch (err) {
-              console.error("Failed to update task sort order:", err);
-            }
-          }
+        const updates = reordered
+          .map((t, i) => (t.sort_order !== i ? updateCommitment(t.id, { sort_order: i }) : null))
+          .filter(Boolean);
+        try {
+          await Promise.all(updates);
+        } catch (err) {
+          console.error("Failed to update task sort order:", err);
         }
       }
     }

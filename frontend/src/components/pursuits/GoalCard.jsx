@@ -136,15 +136,13 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
         reordered.splice(dragIndex, 1);
         reordered.splice(targetIndex, 0, dragSub);
 
-        for (let i = 0; i < reordered.length; i++) {
-          const s = reordered[i];
-          if (s.sort_order !== i) {
-            try {
-              await updateCommitment(s.id, { sort_order: i });
-            } catch (err) {
-              console.error("Failed to update sub-goal sort order:", err);
-            }
-          }
+        const updates = reordered
+          .map((s, i) => (s.sort_order !== i ? updateCommitment(s.id, { sort_order: i }) : null))
+          .filter(Boolean);
+        try {
+          await Promise.all(updates);
+        } catch (err) {
+          console.error("Failed to update sub-goal sort order:", err);
         }
       }
     }

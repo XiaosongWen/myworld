@@ -14,11 +14,14 @@ async def get_weather_forecast(
     lat: Optional[float] = Query(None),
     lon: Optional[float] = Query(None),
 ):
-    client_ip = request.headers.get("x-forwarded-for")
-    if client_ip:
-        client_ip = client_ip.split(",")[0].strip()
-    else:
-        client_ip = request.client.host if request.client else None
+    remote_host = request.client.host if request.client else None
+    client_ip = remote_host
+
+    # Only trust X-Forwarded-For if request comes from local/proxy host
+    if remote_host in ("127.0.0.1", "::1") or (remote_host and (remote_host.startswith("10.") or remote_host.startswith("192.168.") or remote_host.startswith("172."))):
+        forwarded = request.headers.get("x-forwarded-for")
+        if forwarded:
+            client_ip = forwarded.split(",")[0].strip()
 
     result = await WeatherService.get_forecast(client_ip=client_ip, lat=lat, lon=lon)
     request_id = getattr(request.state, "request_id", "UNKNOWN")

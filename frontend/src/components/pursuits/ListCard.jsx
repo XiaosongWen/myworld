@@ -159,15 +159,13 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
         reordered.splice(dragIndex, 1);
         reordered.splice(targetIndex, 0, dragItem);
 
-        for (let i = 0; i < reordered.length; i++) {
-          const it = reordered[i];
-          if (it.sort_order !== i) {
-            try {
-              await updateCommitment(it.id, { sort_order: i });
-            } catch (err) {
-              console.error("Failed to update list item sort order:", err);
-            }
-          }
+        const updates = reordered
+          .map((it, i) => (it.sort_order !== i ? updateCommitment(it.id, { sort_order: i }) : null))
+          .filter(Boolean);
+        try {
+          await Promise.all(updates);
+        } catch (err) {
+          console.error("Failed to update list item sort order:", err);
         }
       }
     }

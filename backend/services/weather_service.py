@@ -46,6 +46,13 @@ CACHE_TTL_SECONDS = 900  # 15 minutes
 MAX_CACHE_ENTRIES = 256
 _weather_cache: dict[Tuple[float, float], Tuple[float, WeatherForecastResult]] = {}
 _ip_location_cache: dict[str, Tuple[float, LocationInfo]] = {}
+_http_client: Optional[httpx.AsyncClient] = None
+
+def get_http_client() -> httpx.AsyncClient:
+    global _http_client
+    if _http_client is None or _http_client.is_closed:
+        _http_client = httpx.AsyncClient(timeout=5.0)
+    return _http_client
 
 
 def get_wmo_info(code: int) -> Tuple[str, str]:
@@ -75,13 +82,13 @@ class WeatherService:
         if lat is not None and lon is not None:
             try:
                 url = f"https://api.bigdatacloud.net/data/reverse-geocode-client?latitude={lat}&longitude={lon}&localityLanguage=en"
-                async with httpx.AsyncClient(timeout=4.0) as client:
-                    res = await client.get(url)
-                    if res.status_code == 200:
-                        data = res.json()
-                        city = data.get("city") or data.get("locality") or data.get("localityInfo", {}).get("administrative", [{}])[0].get("name") or "Unknown City"
-                        region = data.get("principalSubdivision") or data.get("countryName") or ""
-                        return LocationInfo(city=city, region=region, lat=lat, lon=lon)
+                client = get_http_client()
+                res = await client.get(url)
+                if res.status_code == 200:
+                    data = res.json()
+                    city = data.get("city") or data.get("locality") or data.get("localityInfo", {}).get("administrative", [{}])[0].get("name") or "Unknown City"
+                    region = data.get("principalSubdivision") or data.get("countryName") or ""
+                    return LocationInfo(city=city, region=region, lat=lat, lon=lon)
             except Exception as e:
                 logger.warning(f"Reverse geocoding failed for ({lat}, {lon}): {e}")
             return LocationInfo(city="Local Area", region="", lat=lat, lon=lon)
@@ -107,20 +114,20 @@ class WeatherService:
             if validated_ip and validated_ip not in ("127.0.0.1", "::1") and not validated_ip.startswith("192.168."):
                 target_url = f"https://ip-api.com/json/{validated_ip}"
 
-            async with httpx.AsyncClient(timeout=4.0) as client:
-                res = await client.get(target_url)
-                if res.status_code == 200:
-                    data = res.json()
-                    if data.get("status") == "success":
-                        loc = LocationInfo(
-                            city=data.get("city", "Unknown City"),
-                            region=data.get("regionName", data.get("country", "")),
-                            lat=float(data.get("lat", 41.8781)),
-                            lon=float(data.get("lon", -87.6298)),
-                            timezone=data.get("timezone"),
-                        )
-                        _ip_location_cache[cache_key] = (now, loc)
-                        return loc
+            client = get_http_client()
+            res = await client.get(target_url)
+            if res.status_code == 200:
+                data = res.json()
+                if data.get("status") == "success":
+                    loc = LocationInfo(
+                        city=data.get("city", "Unknown City"),
+                        region=data.get("regionName", data.get("country", "")),
+                        lat=float(data.get("lat", 41.8781)),
+                        lon=float(data.get("lon", -87.6298)),
+                        timezone=data.get("timezone"),
+                    )
+                    _ip_location_cache[cache_key] = (now, loc)
+                    return loc
         except Exception as e:
             logger.warning(f"IP geolocation failed for {cache_key}: {e}")
 
@@ -141,26 +148,26 @@ class WeatherService:
         if re.match(r"^\d{5}$", q):
             try:
                 zip_url = f"https://api.zippopotam.us/us/{q}"
-                async with httpx.AsyncClient(timeout=4.0) as client:
-                    res = await client.get(zip_url)
-                    if res.status_code == 200:
-                        data = res.json()
-                        places = data.get("places", [])
-                        if places:
-                            place = places[0]
-                            city = place.get("place name", q)
-                            region = place.get("state", "US")
-                            lat = float(place.get("latitude"))
-                            lon = float(place.get("longitude"))
-                            results.append(
-                                LocationSearchResult(
-                                    city=city,
-                                    region=region,
-                                    country="United States",
-                                    lat=lat,
-                                    lon=lon,
-                                )
+                client = get_http_client()
+                res = await client.get(zip_url)
+                if res.status_code == 200:
+                    data = res.json()
+                    places = data.get("places", [])
+                    if places:
+                        place = places[0]
+                        city = place.get("place name", q)
+                        region = place.get("state", "US")
+                        lat = float(place.get("latitude"))
+                        lon = float(place.get("longitude"))
+                        results.append(
+                            LocationSearchResult(
+                                city=city,
+                                region=region,
+                                country="United States",
+                                lat=lat,
+                                lon=lon,
                             )
+                        )
             except Exception as e:
                 logger.warning(f"Zipcode lookup failed for {q}: {e}")
 
@@ -168,30 +175,30 @@ class WeatherService:
         try:
             geo_url = "https://geocoding-api.open-meteo.com/v1/search"
             params = {"name": q, "count": 5, "language": "en", "format": "json"}
-            async with httpx.AsyncClient(timeout=4.0) as client:
-                res = await client.get(geo_url, params=params)
-                if res.status_code == 200:
-                    data = res.json()
-                    geo_results = data.get("results", []) or []
-                    for item in geo_results:
-                        city = item.get("name", "Unknown")
-                        region = item.get("admin1", "")
-                        country = item.get("country", "")
-                        lat = float(item.get("latitude"))
-                        lon = float(item.get("longitude"))
-                        tz = item.get("timezone")
+            client = get_http_client()
+            res = await client.get(geo_url, params=params)
+            if res.status_code == 200:
+                data = res.json()
+                geo_results = data.get("results", []) or []
+                for item in geo_results:
+                    city = item.get("name", "Unknown")
+                    region = item.get("admin1", "")
+                    country = item.get("country", "")
+                    lat = float(item.get("latitude"))
+                    lon = float(item.get("longitude"))
+                    tz = item.get("timezone")
 
-                        if not any(abs(r.lat - lat) < 0.01 and abs(r.lon - lon) < 0.01 for r in results):
-                            results.append(
-                                LocationSearchResult(
-                                    city=city,
-                                    region=region,
-                                    country=country,
-                                    lat=lat,
-                                    lon=lon,
-                                    timezone=tz,
-                                )
+                    if not any(abs(r.lat - lat) < 0.01 and abs(r.lon - lon) < 0.01 for r in results):
+                        results.append(
+                            LocationSearchResult(
+                                city=city,
+                                region=region,
+                                country=country,
+                                lat=lat,
+                                lon=lon,
+                                timezone=tz,
                             )
+                        )
         except Exception as e:
             logger.warning(f"Geocoding search failed for query={q!r}: {e}")
 
@@ -228,10 +235,10 @@ class WeatherService:
         }
 
         try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                res = await client.get(url, params=params)
-                res.raise_for_status()
-                data = res.json()
+            client = get_http_client()
+            res = await client.get(url, params=params)
+            res.raise_for_status()
+            data = res.json()
 
             tz = data.get("timezone")
             if tz and not location.timezone:
