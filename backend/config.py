@@ -4,9 +4,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_env: str = "dev"
-    database_url: str = "postgresql+asyncpg://myworld:myworld@localhost:5432/myworld"
+    database_url: str = "postgresql+asyncpg://mynest:mynest@localhost:5432/mynest"
     redis_url: str = "redis://localhost:6379"
-    storage_path: str = "./myworld-storage"
+    storage_path: str = "./mynest-storage"
 
     model_config = SettingsConfigDict(env_file="../.env", env_file_encoding="utf-8", extra="ignore")
 

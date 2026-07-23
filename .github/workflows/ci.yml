@@ -15,9 +15,9 @@ jobs:
       postgres:
         image: pgvector/pgvector:pg16
         env:
-          POSTGRES_DB: myworld
-          POSTGRES_USER: myworld
-          POSTGRES_PASSWORD: myworld
+          POSTGRES_DB: mynest
+          POSTGRES_USER: mynest
+          POSTGRES_PASSWORD: mynest
         ports:
           - 5432:5432
         options: >-
@@ -54,14 +54,14 @@ jobs:
 
       - name: Run Alembic Database Migrations
         env:
-          DATABASE_URL: postgresql+asyncpg://myworld:myworld@localhost:5432/myworld
+          DATABASE_URL: postgresql+asyncpg://mynest:mynest@localhost:5432/mynest
         run: |
           cd backend
           alembic upgrade head
 
       - name: Run Pytest Suite
         env:
-          DATABASE_URL: postgresql+asyncpg://myworld:myworld@localhost:5432/myworld
+          DATABASE_URL: postgresql+asyncpg://mynest:mynest@localhost:5432/mynest
           REDIS_URL: redis://localhost:6379
         run: |
           cd backend

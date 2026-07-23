@@ -75,7 +75,7 @@ docker build -t mynest:latest .
 
 ### 3. Infrastructure & Shared Database Deployment
 
-The core infrastructure services (`postgres` and `redis`) are defined in `docker-compose.infra.yml`. You can host a single shared PostgreSQL container and point `dev`, `stage`, and `prod` application environments to separate databases (e.g. `myworld_dev`, `myworld_stage`, `myworld_prod`).
+The core infrastructure services (`postgres` and `redis`) are defined in `docker-compose.infra.yml`. You can host a single shared PostgreSQL container and point `dev`, `stage`, and `prod` application environments to separate databases (e.g. `mynest_dev`, `mynest_stage`, `mynest_prod`).
 
 Copy `.env.example` to `.env` to configure your environment variables:
 ```bash
@@ -83,10 +83,10 @@ cp .env.example .env
 ```
 
 #### Shared Infrastructure Variables (`.env`):
-- `POSTGRES_CONTAINER_NAME=myworld-postgres`
-- `POSTGRES_USER=myworld`
-- `POSTGRES_PASSWORD=myworld`
-- `POSTGRES_DB=myworld_dev`
+- `POSTGRES_CONTAINER_NAME=mynest-postgres`
+- `POSTGRES_USER=mynest`
+- `POSTGRES_PASSWORD=mynest`
+- `POSTGRES_DB=mynest_dev`
 - `POSTGRES_PORT=5432`
 - `POSTGRES_DATA_DIR=./data/postgres`
 - `REDIS_PORT=6379`
@@ -106,13 +106,13 @@ docker compose --env-file .env -f docker-compose.infra.yml up -d
 
 ### 5. Running Staging Application (`docker-compose.stage.yml`)
 
-Run the staging app connected to `myworld_stage` database:
+Run the staging app connected to `mynest_stage` database:
 
 ```bash
 APP_IMAGE=tomaswen/mynest:stage \
 APP_CONTAINER_NAME=mynest-stage-app \
 APP_PORT=8001 \
-DATABASE_URL=postgresql+asyncpg://myworld:myworld@postgres:5432/myworld_stage \
+DATABASE_URL=postgresql+asyncpg://mynest:mynest@postgres:5432/mynest_stage \
 REDIS_URL=redis://redis:6379 \
 STORAGE_PATH=/app/storage \
 STORAGE_DATA_DIR=./data/stage/storage \
@@ -126,13 +126,13 @@ Access staging app at `http://localhost:8001`.
 
 ### 6. Running Production Application (`docker-compose.prod.yml`)
 
-Run the production app connected to `myworld_prod` database:
+Run the production app connected to `mynest_prod` database:
 
 ```bash
 APP_IMAGE=tomaswen/mynest:latest \
 APP_CONTAINER_NAME=mynest-prod-app \
 APP_PORT=8000 \
-DATABASE_URL=postgresql+asyncpg://myworld:myworld@postgres:5432/myworld_prod \
+DATABASE_URL=postgresql+asyncpg://mynest:mynest@postgres:5432/mynest_prod \
 REDIS_URL=redis://redis:6379 \
 STORAGE_PATH=/app/storage \
 STORAGE_DATA_DIR=./data/prod/storage \
