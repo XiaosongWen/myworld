@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import LabelPill from "./LabelPill";
 import usePursuitsStore from "../../stores/pursuitsStore";
+import { formatLocalDateLong } from "../../utils/date";
 
 export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = false }) {
   const { commitments, createCommitment, updateCommitment, deleteCommitment } = usePursuitsStore();
@@ -21,7 +22,9 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
         const timeB = new Date(b.updated_at || b.completed_at || 0).getTime();
         return timeB - timeA;
       }
-      return 0;
+      const orderA = a.sort_order ?? 0;
+      const orderB = b.sort_order ?? 0;
+      return orderA - orderB;
     });
 
   // Compute percentage from subGoals if available, else fallback to goal.progress.percent
@@ -78,11 +81,78 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
     }
   };
 
+  const [dragOverSubGoalId, setDragOverSubGoalId] = useState(null);
+
+  const handleSubGoalDragStart = (e, sub) => {
+    e.stopPropagation();
+    e.dataTransfer.setData("text/plain", sub.id);
+    e.dataTransfer.setData("source-type", "goal-subgoal");
+    e.dataTransfer.setData("source-parent-id", goal.id);
+    e.dataTransfer.setData("parent-" + String(goal.id).toLowerCase(), "true");
+    
+    window.dragManager = {
+      draggedItemId: sub.id,
+      sourceType: "goal-subgoal",
+      sourceParentId: goal.id,
+      sourceColumn: null,
+    };
+  };
+
+  const handleSubGoalDragOver = (e, targetSub) => {
+    if (targetSub.status === "completed") return;
+    const dm = window.dragManager;
+    if (!dm || dm.sourceType !== "goal-subgoal" || String(dm.sourceParentId) !== String(goal.id)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (dragOverSubGoalId !== targetSub.id) {
+      setDragOverSubGoalId(targetSub.id);
+    }
+  };
+
+  const handleSubGoalDragLeave = (e) => {
+    e.stopPropagation();
+    setDragOverSubGoalId(null);
+  };
+
+  const handleSubGoalDrop = async (e, targetSub) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverSubGoalId(null);
+
+    const dragSubId = e.dataTransfer.getData("text/plain");
+    const sourceType = e.dataTransfer.getData("source-type");
+    const sourceParentId = e.dataTransfer.getData("source-parent-id");
+
+    if (sourceType === "goal-subgoal" && sourceParentId === goal.id && dragSubId !== targetSub.id) {
+      const dragSub = subGoals.find(s => s.id === dragSubId);
+      if (!dragSub || dragSub.status === "completed" || targetSub.status === "completed") return;
+
+      const activeSubs = subGoals.filter(s => s.status !== "completed");
+      const dragIndex = activeSubs.findIndex(s => s.id === dragSubId);
+      const targetIndex = activeSubs.findIndex(s => s.id === targetSub.id);
+
+      if (dragIndex !== -1 && targetIndex !== -1) {
+        const reordered = [...activeSubs];
+        reordered.splice(dragIndex, 1);
+        reordered.splice(targetIndex, 0, dragSub);
+
+        const updates = reordered
+          .map((s, i) => (s.sort_order !== i ? updateCommitment(s.id, { sort_order: i }) : null))
+          .filter(Boolean);
+        try {
+          await Promise.all(updates);
+        } catch (err) {
+          console.error("Failed to update sub-goal sort order:", err);
+        }
+      }
+    }
+  };
+
   return (
     <div className="card" onClick={() => onOpenDetail?.(goal.id)} style={{ cursor: onOpenDetail ? "pointer" : "default" }}>
       <div className="goal-header">
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, overflow: "visible", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>🎯 {goal.title}</span>
+          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{goal.config?.icon || "🎯"} {goal.title}</span>
           {(goal.labels || []).map((lbl) => (
             <LabelPill key={lbl.id || lbl.name} label={lbl} compact={(goal.labels || []).length > 2} />
           ))}
@@ -109,7 +179,7 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
 
       {goal.due_date && (
         <div className="text-sm text-muted" style={{ marginBottom: 12 }}>
-          Due: {new Date(goal.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          Due: {formatLocalDateLong(goal.due_date)}
         </div>
       )}
 
@@ -124,6 +194,12 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
             return (
               <div
                 key={sub.id}
+                draggable={!isDone}
+                onDragStart={(e) => handleSubGoalDragStart(e, sub)}
+                onDragEnd={() => { window.dragManager = null; }}
+                onDragOver={(e) => handleSubGoalDragOver(e, sub)}
+                onDragLeave={handleSubGoalDragLeave}
+                onDrop={(e) => handleSubGoalDrop(e, sub)}
                 style={{
                   display: "flex",
                   gap: 8,
@@ -132,6 +208,9 @@ export default function GoalCard({ goal, onOpenDetail, onEdit, showSubGoals = fa
                   marginBottom: 8,
                   alignItems: "center",
                   flexWrap: "wrap",
+                  cursor: isDone ? "default" : "grab",
+                  borderTop: dragOverSubGoalId === sub.id ? "2px solid var(--accent)" : "2px solid transparent",
+                  transition: "border-top 0.1s ease",
                 }}
               >
                 <div

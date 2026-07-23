@@ -10,6 +10,7 @@ from routers.health import router as health_router
 from routers.user import router as user_router
 from routers.test import router as test_router
 from routers.labels import router as labels_router
+from routers.weather import router as weather_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -35,3 +36,5 @@ app.include_router(pursuits_router)
 app.include_router(user_router)
 app.include_router(test_router)
 app.include_router(labels_router)
+app.include_router(weather_router)
+

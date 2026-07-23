@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import usePursuitsStore from "../stores/pursuitsStore";
 import LabelPill from "../components/pursuits/LabelPill";
+import { formatLocalDateShort } from "../utils/date";
 import HabitChecklist from "../components/pursuits/HabitChecklist";
 import GoalCard from "../components/pursuits/GoalCard";
 import TaskCard from "../components/pursuits/TaskCard";
@@ -28,7 +29,7 @@ const TAB_MAP = {
 export default function Commitments() {
   const { tab } = useParams();
   const navigate = useNavigate();
-  const { commitments, labels, daily, records, fetchCommitments, fetchLabels, fetchDaily, fetchRecords, uncheckHabit, checkInHabit, loading, error } = usePursuitsStore();
+  const { commitments, labels, daily, records, fetchCommitments, fetchLabels, fetchDaily, fetchRecords, uncheckHabit, checkInHabit, updateCommitment, loading, error } = usePursuitsStore();
   
   const filter = TAB_MAP[tab] || "all";
 
@@ -47,6 +48,13 @@ export default function Commitments() {
   const [createType, setCreateType] = useState(null);
   const [editingCommitment, setEditingCommitment] = useState(null);
   const [selectedDetailId, setSelectedDetailId] = useState(null);
+  const [rescheduleTaskId, setRescheduleTaskId] = useState(null);
+  const [clearParentIdOnReschedule, setClearParentIdOnReschedule] = useState(false);
+
+  const handlePromptReschedule = (taskId, clearParent = false) => {
+    setRescheduleTaskId(taskId);
+    setClearParentIdOnReschedule(clearParent);
+  };
 
   const now = new Date();
   const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -198,7 +206,7 @@ export default function Commitments() {
                   .map((t) => ({
                     left: t.title,
                     labels: t.labels || [],
-                    right: t.status === "completed" ? "Done" : (t.due_date ? new Date(t.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : (t.priority ? t.priority.toUpperCase() : "Pending")),
+                    right: t.status === "completed" ? "Done" : (t.due_date ? formatLocalDateShort(t.due_date) : (t.priority ? t.priority.toUpperCase() : "Pending")),
                     rightStyle: { color: t.status === "completed" ? "var(--success)" : (t.priority === "high" ? "var(--danger)" : "var(--fg-muted)") },
                   }))}
                 onClick={() => handleSetFilter("task")}
@@ -319,7 +327,7 @@ export default function Commitments() {
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div className="priority-dot low" /> Low</div>
               </div>
             </div>
-            <TaskGroupView tasks={tasks} todayISO={todayISO} onOpenDetail={(id) => setSelectedDetailId(id)} onEdit={(task) => setEditingCommitment(task)} />
+            <TaskGroupView tasks={tasks} todayISO={todayISO} onOpenDetail={(id) => setSelectedDetailId(id)} onEdit={(task) => setEditingCommitment(task)} onPromptReschedule={handlePromptReschedule} />
           </div>
         )}
 
@@ -361,6 +369,27 @@ export default function Commitments() {
           commitmentId={selectedDetailId}
           onClose={() => setSelectedDetailId(null)}
           onEdit={(c) => setEditingCommitment(c)}
+        />
+      )}
+
+      {rescheduleTaskId && (
+        <RescheduleModal
+          taskId={rescheduleTaskId}
+          todayISO={todayISO}
+          onClose={() => setRescheduleTaskId(null)}
+          onConfirm={async (selectedDate) => {
+            try {
+              const payload = { due_date: selectedDate };
+              if (clearParentIdOnReschedule) {
+                payload.parent_id = null;
+              }
+              await updateCommitment(rescheduleTaskId, payload);
+            } catch (err) {
+              console.error("Failed to reschedule task:", err);
+            }
+            setRescheduleTaskId(null);
+            setClearParentIdOnReschedule(false);
+          }}
         />
       )}
     </div>
@@ -408,26 +437,166 @@ function SummaryCard({ icon, label, count, items, onClick }) {
 
 // ── Task group view (Inbox / Today / Upcoming) ─────────────────────────
 
-function TaskGroupView({ tasks, todayISO, onOpenDetail, onEdit }) {
+function TaskGroupView({ tasks, todayISO, onOpenDetail, onEdit, onPromptReschedule }) {
+  const isCompletedToday = (t) => {
+    if (t.status !== "completed" || !t.updated_at) return false;
+    const d = new Date(t.updated_at);
+    if (isNaN(d.getTime())) return false;
+    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    return iso === todayISO;
+  };
+
+  const getTwoWeeksLaterISO = (todayStr) => {
+    const parts = todayStr.split("-");
+    if (parts.length !== 3) return todayStr;
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const d = new Date(year, month, day);
+    d.setDate(d.getDate() + 14);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const twoWeeksLaterISO = getTwoWeeksLaterISO(todayISO);
+
   const inbox = tasks.filter((t) => t.status !== "completed" && !t.due_date);
-  const todayTasks = tasks.filter((t) => (t.due_date && t.due_date === todayISO) || t.status === "completed");
-  const upcoming = tasks.filter((t) => t.status !== "completed" && t.due_date && t.due_date > todayISO);
+  const todayTasks = tasks.filter((t) =>
+    (t.due_date && (t.due_date === todayISO || (t.due_date < todayISO && t.status !== "completed"))) ||
+    isCompletedToday(t)
+  );
+  const upcoming = tasks.filter((t) => t.status !== "completed" && t.due_date && t.due_date > todayISO && t.due_date <= twoWeeksLaterISO);
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 24 }}>
-      <TaskColumn icon="📥" label="Inbox" tasks={inbox} todayISO={todayISO} onOpenDetail={onOpenDetail} onEdit={onEdit} />
-      <TaskColumn icon="☀️" label="Today" tasks={todayTasks} todayISO={todayISO} onOpenDetail={onOpenDetail} onEdit={onEdit} />
-      <TaskColumn icon="📅" label="Upcoming" tasks={upcoming} todayISO={todayISO} onOpenDetail={onOpenDetail} onEdit={onEdit} />
+      <TaskColumn icon="📥" label="Inbox" tasks={inbox} todayISO={todayISO} onOpenDetail={onOpenDetail} onEdit={onEdit} onPromptReschedule={onPromptReschedule} />
+      <TaskColumn icon="☀️" label="Today" tasks={todayTasks} todayISO={todayISO} onOpenDetail={onOpenDetail} onEdit={onEdit} onPromptReschedule={onPromptReschedule} />
+      <TaskColumn icon="📅" label="Upcoming" tasks={upcoming} todayISO={todayISO} onOpenDetail={onOpenDetail} onEdit={onEdit} onPromptReschedule={onPromptReschedule} />
     </div>
   );
 }
 
-function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit }) {
+function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit, onPromptReschedule }) {
   const { createCommitment, updateCommitment } = usePursuitsStore();
   const [quickTitle, setQuickTitle] = useState("");
   const [showCompleted, setShowCompleted] = useState(true);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [dragOverTaskId, setDragOverTaskId] = useState(null);
 
   const PRIORITY_WEIGHT = { high: 3, medium: 2, med: 2, low: 1, none: 0 };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    
+    const taskId = e.dataTransfer.getData("text/plain");
+    const sourceType = e.dataTransfer.getData("source-type");
+    const sourceDueDate = e.dataTransfer.getData("source-due-date");
+    
+    if (sourceType === "task-card" || sourceType === "list-item") {
+      const shouldClearParent = sourceType === "list-item";
+      
+      if (label === "Today") {
+        try {
+          await updateCommitment(taskId, { due_date: todayISO, parent_id: null });
+        } catch (err) {
+          console.error("Failed to move task to Today:", err);
+        }
+      } else if (label === "Upcoming") {
+        const isFromInbox = !sourceDueDate;
+        const isFromToday = sourceDueDate === todayISO;
+        
+        if (isFromInbox || isFromToday || shouldClearParent) {
+          onPromptReschedule?.(taskId, shouldClearParent);
+        } else {
+          // Already upcoming, keep existing or set tomorrow if somehow empty
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          const tomorrowISO = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+          const targetDate = sourceDueDate || tomorrowISO;
+          try {
+            await updateCommitment(taskId, { due_date: targetDate, parent_id: null });
+          } catch (err) {
+            console.error("Failed to move task to Upcoming:", err);
+          }
+        }
+      } else if (label === "Inbox") {
+        try {
+          await updateCommitment(taskId, { due_date: null, parent_id: null });
+        } catch (err) {
+          console.error("Failed to move task to Inbox:", err);
+        }
+      }
+    }
+  };
+
+  const handleTaskDragOver = (e, targetTask) => {
+    if (targetTask.status === "completed") return;
+    const dm = window.dragManager;
+    if (!dm) return;
+
+    if (dm.sourceType === "task-card" && dm.sourceColumn === String(label).toLowerCase()) {
+      e.preventDefault();
+      if (dragOverTaskId !== targetTask.id) {
+        setDragOverTaskId(targetTask.id);
+      }
+    } else if (dm.sourceType === "task-card" || dm.sourceType === "list-item") {
+      e.preventDefault();
+    }
+  };
+
+  const handleTaskDragLeave = () => {
+    setDragOverTaskId(null);
+  };
+
+  const handleTaskDrop = async (e, targetTask) => {
+    const sourceType = e.dataTransfer.getData("source-type");
+    if (sourceType !== "task-card") {
+      // Let it bubble up to handleDrop of TaskColumn
+      return;
+    }
+
+    const dragTaskId = e.dataTransfer.getData("text/plain");
+    const dragTask = tasks.find(t => t.id === dragTaskId);
+    if (!dragTask) {
+      // It came from another column! Let it bubble up to TaskColumn's handleDrop!
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverTaskId(null);
+
+    if (dragTaskId !== targetTask.id) {
+      if (dragTask.status === "completed" || targetTask.status === "completed") return;
+
+      const activeTasks = sortedTasks.filter(t => t.status !== "completed");
+      const dragIndex = activeTasks.findIndex(t => t.id === dragTaskId);
+      const targetIndex = activeTasks.findIndex(t => t.id === targetTask.id);
+
+      if (dragIndex !== -1 && targetIndex !== -1) {
+        const reordered = [...activeTasks];
+        reordered.splice(dragIndex, 1);
+        reordered.splice(targetIndex, 0, dragTask);
+
+        const updates = reordered
+          .map((t, i) => (t.sort_order !== i ? updateCommitment(t.id, { sort_order: i }) : null))
+          .filter(Boolean);
+        try {
+          await Promise.all(updates);
+        } catch (err) {
+          console.error("Failed to update task sort order:", err);
+        }
+      }
+    }
+  };
 
   const filteredTasks = tasks.filter((t) => showCompleted || t.status !== "completed");
 
@@ -441,6 +610,10 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit }) {
       const timeB = new Date(b.updated_at || b.completed_at || 0).getTime();
       return timeB - timeA;
     }
+    const orderA = a.sort_order ?? 0;
+    const orderB = b.sort_order ?? 0;
+    if (orderA !== orderB) return orderA - orderB;
+
     const weightA = PRIORITY_WEIGHT[a.priority?.toLowerCase()] ?? 0;
     const weightB = PRIORITY_WEIGHT[b.priority?.toLowerCase()] ?? 0;
     if (weightB !== weightA) {
@@ -454,9 +627,6 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit }) {
   const handleToggle = async (task) => {
     const newStatus = task.status === "completed" ? "active" : "completed";
     const payload = { status: newStatus };
-    if (newStatus === "completed") {
-      payload.due_date = todayISO;
-    }
     await updateCommitment(task.id, payload);
   };
 
@@ -481,7 +651,17 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit }) {
   };
 
   return (
-    <div className="card">
+    <div
+      className="card"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      style={{
+        border: isDragOver ? "2px dashed var(--accent)" : "1px solid var(--border)",
+        boxShadow: isDragOver ? "0 0 0 4px var(--accent-glow)" : undefined,
+        transition: "border var(--transition-fast), box-shadow var(--transition-fast)",
+      }}
+    >
       <h2 style={{ fontSize: 16, marginBottom: 16, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span>{icon} {label}</span>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -510,7 +690,18 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit }) {
       </h2>
       <div className="task-list">
         {sortedTasks.map((t) => (
-          <TaskCard key={t.id} task={t} onToggleStatus={() => handleToggle(t)} onOpenDetail={onOpenDetail} onEdit={onEdit} />
+          <div
+            key={t.id}
+            onDragOver={(e) => handleTaskDragOver(e, t)}
+            onDragLeave={handleTaskDragLeave}
+            onDrop={(e) => handleTaskDrop(e, t)}
+            style={{
+              borderTop: dragOverTaskId === t.id ? "2px solid var(--accent)" : "2px solid transparent",
+              transition: "border-top 0.1s ease",
+            }}
+          >
+            <TaskCard task={t} onToggleStatus={() => handleToggle(t)} onOpenDetail={onOpenDetail} onEdit={onEdit} />
+          </div>
         ))}
         {tasks.length === 0 && <p className="text-muted text-sm">All clear ✓</p>}
         <div className="input-bar" style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
@@ -528,3 +719,83 @@ function TaskColumn({ icon, label, tasks, todayISO, onOpenDetail, onEdit }) {
     </div>
   );
 }
+
+function RescheduleModal({ taskId, onClose, onConfirm, todayISO }) {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowISO = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, "0")}-${String(tomorrow.getDate()).padStart(2, "0")}`;
+  
+  const [selectedDate, setSelectedDate] = useState(tomorrowISO);
+
+  return (
+    <div
+      className="modal-backdrop"
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.4)",
+        backdropFilter: "blur(4px)",
+        zIndex: 1050,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <div
+        className="modal-content"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "var(--surface-raised)",
+          border: "1px solid var(--border-light)",
+          borderRadius: "var(--radius-md)",
+          padding: "24px",
+          width: "320px",
+          boxShadow: "0 20px 40px -15px rgba(0, 0, 0, 0.2)",
+          display: "flex",
+          flexDirection: "column",
+          gap: "16px",
+        }}
+      >
+        <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "var(--fg)" }}>Select Due Date</h3>
+        
+        <input
+          type="date"
+          value={selectedDate}
+          min={tomorrowISO}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          style={{
+            width: "100%",
+            padding: "10px 12px",
+            borderRadius: "var(--radius-sm)",
+            border: "1px solid var(--border-light)",
+            background: "var(--bg)",
+            color: "var(--fg)",
+            fontSize: "14px",
+            outline: "none",
+            boxSizing: "border-box",
+            fontFamily: "var(--font-main)"
+          }}
+        />
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
+          <button
+            className="pill-btn"
+            onClick={onClose}
+            style={{ fontSize: "13px", padding: "6px 12px", background: "transparent", border: "1px solid var(--border)", color: "var(--fg)", cursor: "pointer" }}
+          >
+            Cancel
+          </button>
+          <button
+            className="btn-primary"
+            onClick={() => onConfirm(selectedDate)}
+            style={{ fontSize: "13px", padding: "6px 16px", borderRadius: "16px", cursor: "pointer" }}
+          >
+            Schedule
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+

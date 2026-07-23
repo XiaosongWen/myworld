@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, memo } from "react";
 import usePursuitsStore from "../stores/pursuitsStore";
 import HabitChecklist from "../components/pursuits/HabitChecklist";
 import TaskCard from "../components/pursuits/TaskCard";
@@ -7,6 +7,11 @@ import MonthGlance from "../components/pursuits/MonthGlance";
 import CreateCommitmentModal from "../components/pursuits/CreateCommitmentModal";
 import CommitmentDetail from "./CommitmentDetail";
 import LabelPill from "../components/pursuits/LabelPill";
+import { fetchWeatherForecast, searchWeatherLocations } from "../api/weather";
+import { formatLocalDateShort } from "../utils/date";
+
+
+
 
 function useLiveClock() {
   const [time, setTime] = useState(new Date());
@@ -55,29 +60,153 @@ function formatDateLong(date) {
   });
 }
 
+function getZonedTimeParts(date, timeZone) {
+  if (!timeZone) {
+    return {
+      hours: String(date.getHours()).padStart(2, "0"),
+      minutes: String(date.getMinutes()).padStart(2, "0"),
+      seconds: String(date.getSeconds()).padStart(2, "0"),
+      dateLong: formatDateLong(date),
+    };
+  }
+
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    const parts = formatter.formatToParts(date);
+    const p = {};
+    for (const part of parts) {
+      p[part.type] = part.value;
+    }
+
+    const hours = (p.hour === "24" ? "00" : p.hour || "00").padStart(2, "0");
+    const minutes = (p.minute || "00").padStart(2, "0");
+    const seconds = (p.second || "00").padStart(2, "0");
+    const dateLong = `${p.weekday}, ${p.month} ${p.day}, ${p.year}`;
+
+    return { hours, minutes, seconds, dateLong };
+  } catch (e) {
+    return {
+      hours: String(date.getHours()).padStart(2, "0"),
+      minutes: String(date.getMinutes()).padStart(2, "0"),
+      seconds: String(date.getSeconds()).padStart(2, "0"),
+      dateLong: formatDateLong(date),
+    };
+  }
+}
+
+/* ── Isolated FlipClock component ──
+ * Keeps the 1-second setInterval re-renders isolated here
+ * instead of forcing the entire DailyLog dashboard to re-render.
+ */
+const FlipClock = memo(function FlipClock({ locationTimezone, locationName, onClickLocation }) {
+  const now = useLiveClock();
+  const { hours, minutes, seconds, dateLong } = getZonedTimeParts(now, locationTimezone);
+
+  return (
+    <div className="flip-clock-container">
+      <div style={{ display: "flex", alignItems: "flex-end", gap: "12px" }}>
+        <div className="flip-clock">
+          <div className="flip-panel"><span>{hours}</span></div>
+          <span className="flip-colon">:</span>
+          <div className="flip-panel"><span>{minutes}</span></div>
+          <span className="flip-colon">:</span>
+          <div className="flip-panel"><span>{seconds}</span></div>
+        </div>
+      </div>
+      <div style={{ fontSize: "16px", fontWeight: 600, color: "var(--fg)", display: "flex", alignItems: "center", gap: "8px" }}>
+        <span
+          style={{ color: "var(--fg-muted)", fontWeight: 500, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "4px" }}
+          onClick={onClickLocation}
+          title="Click to change city or zipcode"
+        >
+          {locationName || Intl.DateTimeFormat().resolvedOptions().timeZone?.split("/").pop()?.replace("_", " ") || "Local"}
+          <span style={{ fontSize: "12px", opacity: 0.6 }}>✏️</span>
+        </span>
+        {dateLong}
+      </div>
+    </div>
+  );
+});
+
 export default function DailyLog() {
   const { daily, commitments, fetchDaily, fetchLabels, fetchCommitments, checkInHabit, uncheckHabit, createCommitment, updateCommitment } = usePursuitsStore();
-  const now = useLiveClock();
   const [showCreate, setShowCreate] = useState(false);
   const [createType, setCreateType] = useState("task");
   const [editingCommitment, setEditingCommitment] = useState(null);
   const [selectedDetailId, setSelectedDetailId] = useState(null);
   const [quickTaskTitle, setQuickTaskTitle] = useState("");
+  const [locationName, setLocationName] = useState(null);
+  const [locationTimezone, setLocationTimezone] = useState(null);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
+  const [customLocation, setCustomLocation] = useState(() => {
+    try {
+      const saved = localStorage.getItem("custom_weather_location");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const handleSelectCustomLocation = (loc) => {
+    setCustomLocation(loc);
+    try {
+      localStorage.setItem("custom_weather_location", JSON.stringify(loc));
+    } catch (_) {}
+  };
+
+  const handleResetLocation = () => {
+    setCustomLocation(null);
+    try {
+      localStorage.removeItem("custom_weather_location");
+    } catch (_) {}
+  };
+
+  const handleLocationResolved = useCallback((loc) => {
+    if (loc?.city) {
+      const name = loc.region ? `${loc.city}, ${loc.region}` : loc.city;
+      setLocationName(name);
+    }
+    if (loc?.timezone) {
+      setLocationTimezone(loc.timezone);
+    } else {
+      setLocationTimezone(null);
+    }
+  }, []);
+
 
   const openCreateModal = (type) => {
     setCreateType(type);
     setShowCreate(true);
   };
 
-  const hours = String(now.getHours()).padStart(2, "0");
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const seconds = String(now.getSeconds()).padStart(2, "0");
+  const [currentDate, setCurrentDate] = useState(todayISO);
 
   useEffect(() => {
-    fetchDaily(todayISO());
+    const timer = setInterval(() => {
+      const today = todayISO();
+      if (today !== currentDate) {
+        setCurrentDate(today);
+      }
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [currentDate]);
+
+  useEffect(() => {
+    fetchDaily(currentDate);
     fetchLabels();
     fetchCommitments();
-  }, [fetchDaily, fetchLabels, fetchCommitments]);
+  }, [currentDate, fetchDaily, fetchLabels, fetchCommitments]);
 
   const habits = [...(daily?.habits || [])].sort(
     (a, b) => (b.commitment?.progress?.streak ?? 0) - (a.commitment?.progress?.streak ?? 0)
@@ -189,29 +318,24 @@ export default function DailyLog() {
       {/* ── Page Header ── */}
       <header className="page-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "24px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-          <div className="flip-clock-container">
-            <div style={{ display: "flex", alignItems: "flex-end", gap: "12px" }}>
-              <div className="flip-clock">
-                <div className="flip-panel"><span>{hours}</span></div>
-                <span className="flip-colon">:</span>
-                <div className="flip-panel"><span>{minutes}</span></div>
-                <span className="flip-colon">:</span>
-                <div className="flip-panel"><span>{seconds}</span></div>
-              </div>
-            </div>
-            <div style={{ fontSize: "16px", fontWeight: 600, color: "var(--fg)", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ color: "var(--fg-muted)", fontWeight: 500 }}>
-                {Intl.DateTimeFormat().resolvedOptions().timeZone?.split("/").pop()?.replace("_", " ") || "Local"}
-              </span>
-              {formatDateLong(now)}
-            </div>
-          </div>
+          <FlipClock
+            locationTimezone={locationTimezone}
+            locationName={locationName}
+            onClickLocation={() => setShowLocationPicker(true)}
+          />
         </div>
 
         {/* Weather + Progress right column */}
         <div style={{ display: "flex", flexDirection: "column", gap: "12px", alignItems: "flex-end" }}>
           {/* 5-Day Weather Forecast */}
-          <WeatherStrip />
+          <WeatherStrip
+            customLocation={customLocation}
+            onOpenLocationPicker={() => setShowLocationPicker(true)}
+            onLocationResolved={handleLocationResolved}
+          />
+
+
+
 
           {/* Month/Quarter/Year progress */}
           <div style={{ display: "flex", gap: "16px", background: "var(--surface)", padding: "12px 20px", borderRadius: "var(--radius-lg)", boxShadow: "0 2px 12px rgba(0,0,0,0.02)", minWidth: "320px" }}>
@@ -384,6 +508,15 @@ export default function DailyLog() {
           }}
         />
       )}
+
+      {/* Location Picker Modal */}
+      {showLocationPicker && (
+        <LocationPickerModal
+          onClose={() => setShowLocationPicker(false)}
+          onSelectLocation={handleSelectCustomLocation}
+          onResetLocation={handleResetLocation}
+        />
+      )}
     </div>
   );
 }
@@ -449,7 +582,7 @@ function GoalSummaryFromStore({ onOpenCreate, onSelectGoal }) {
             {/* Deadline */}
             {g.due_date && (
               <span className="text-muted" style={{ fontSize: "12px", whiteSpace: "nowrap" }}>
-                Due: {new Date(g.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                Due: {formatLocalDateShort(g.due_date)}
               </span>
             )}
 
@@ -484,27 +617,227 @@ const PLACEHOLDER_FORECAST = [
   { label: "Fri",   icon: "☀️",  temp: "—°" },
 ];
 
-function WeatherStrip() {
+function WeatherStrip({ customLocation, onOpenLocationPicker, onLocationResolved }) {
+  const [forecast, setForecast] = useState(null);
+  const [unit, setUnit] = useState(() => {
+    try {
+      return localStorage.getItem("weather_unit") || "F";
+    } catch {
+      return "F";
+    }
+  });
+
+  const toggleUnit = () => {
+    const next = unit === "F" ? "C" : "F";
+    setUnit(next);
+    try {
+      localStorage.setItem("weather_unit", next);
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadForecast = async (lat, lon) => {
+      try {
+        const res = await fetchWeatherForecast(lat, lon);
+        if (isMounted && res) {
+          if (res.forecast) setForecast(res.forecast);
+          if (res.location && onLocationResolved) {
+            onLocationResolved(res.location);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch weather forecast:", err);
+      }
+    };
+
+    if (customLocation?.lat != null && customLocation?.lon != null) {
+      loadForecast(customLocation.lat, customLocation.lon);
+    } else if ("geolocation" in navigator && typeof navigator.geolocation.getCurrentPosition === "function") {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => loadForecast(pos.coords.latitude, pos.coords.longitude),
+        () => loadForecast(),
+        { timeout: 3000 }
+      );
+    } else {
+      loadForecast();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [customLocation, onLocationResolved]);
+
+  const items = forecast || PLACEHOLDER_FORECAST;
+
   return (
-    <div style={{
-      display: "flex", alignItems: "center", gap: "16px",
-      background: "var(--surface)", padding: "8px 20px",
-      borderRadius: "var(--radius-lg)", boxShadow: "0 2px 12px rgba(0,0,0,0.02)",
-    }}>
-      {PLACEHOLDER_FORECAST.map((day, i) => (
-        <React.Fragment key={day.label}>
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px" }}>
-            <span style={{ fontSize: "11px", fontWeight: 600, color: i === 0 ? "var(--fg)" : "var(--fg-muted)" }}>
-              {day.label}
-            </span>
-            <span style={{ fontSize: "16px" }}>{day.icon}</span>
-            <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--fg)" }}>{day.temp}</span>
-          </div>
-          {i < PLACEHOLDER_FORECAST.length - 1 && (
-            <div style={{ width: "1px", height: "24px", background: "var(--border)" }} />
-          )}
-        </React.Fragment>
-      ))}
+    <div
+      className="weather-strip"
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "16px",
+        background: "var(--surface)",
+        padding: "8px 20px",
+        borderRadius: "var(--radius-lg)",
+        boxShadow: "0 2px 12px rgba(0,0,0,0.02)",
+      }}
+    >
+      {items.map((day, i) => {
+        const highVal = day.high_f != null ? (unit === "F" ? day.high_f : day.high_c) : null;
+        const lowVal = day.low_f != null ? (unit === "F" ? day.low_f : day.low_c) : null;
+
+        return (
+          <React.Fragment key={day.label + i}>
+            <div
+              title={day.condition ? `${day.condition} (High: ${highVal ?? "—"}°, Low: ${lowVal ?? "—"}°)` : ""}
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "2px",
+                cursor: "pointer",
+              }}
+              onClick={toggleUnit}
+            >
+              <span
+                style={{
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: i === 0 ? "var(--fg)" : "var(--fg-muted)",
+                }}
+              >
+                {day.label}
+              </span>
+              <span style={{ fontSize: "16px" }}>{day.icon}</span>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--fg)", whiteSpace: "nowrap" }}>
+                {highVal != null && lowVal != null ? (
+                  <>
+                    {highVal}° <span style={{ fontSize: "11px", color: "var(--fg-muted)", fontWeight: 400 }}>/ {lowVal}°</span>
+                  </>
+                ) : (
+                  day.temp || "—°"
+                )}
+              </span>
+            </div>
+            {i < items.length - 1 && (
+              <div style={{ width: "1px", height: "24px", background: "var(--border)" }} />
+            )}
+          </React.Fragment>
+        );
+      })}
+      <button
+        onClick={toggleUnit}
+        title="Toggle °F / °C"
+        style={{
+          border: "none",
+          background: "transparent",
+          cursor: "pointer",
+          fontSize: "11px",
+          fontWeight: 700,
+          color: "var(--fg-muted)",
+          padding: "2px 4px",
+          borderRadius: "4px",
+          marginLeft: "-4px",
+        }}
+      >
+        °{unit}
+      </button>
     </div>
   );
 }
+
+function LocationPickerModal({ onClose, onSelectLocation, onResetLocation }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await searchWeatherLocations(query);
+        setResults(res);
+      } catch (err) {
+        console.error("Search failed:", err);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  return (
+    <div className="location-picker-overlay" onClick={onClose}>
+      <div className="location-picker-modal" onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 700, color: "var(--fg)" }}>Change Location</h3>
+          <button
+            onClick={onClose}
+            style={{ background: "transparent", border: "none", fontSize: "16px", cursor: "pointer", color: "var(--fg-muted)" }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <div className="location-search-wrapper">
+          <span className="location-search-icon">🔍</span>
+          <input
+            type="text"
+            className="location-search-input"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search city name or zipcode..."
+            autoFocus
+          />
+        </div>
+
+        <div className="location-result-list">
+          {searching && <div style={{ padding: "12px", fontSize: "13px", color: "var(--fg-muted)", textAlign: "center" }}>Searching locations...</div>}
+          {!searching && query.trim() && results.length === 0 && (
+            <div style={{ padding: "12px", fontSize: "13px", color: "var(--fg-muted)", textAlign: "center" }}>No locations found</div>
+          )}
+          {results.map((item, idx) => (
+            <div
+              key={idx}
+              className="location-result-item"
+              onClick={() => {
+                onSelectLocation(item);
+                onClose();
+              }}
+            >
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                <span className="city-name">{item.city}</span>
+                <span className="region-name">
+                  {[item.region, item.country].filter(Boolean).join(", ")}
+                </span>
+              </div>
+              <span style={{ fontSize: "14px", opacity: 0.6 }}>📍</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ paddingTop: "12px", borderTop: "1px solid var(--border-light)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <button
+            className="pill-btn"
+            onClick={() => {
+              onResetLocation();
+              onClose();
+            }}
+            style={{ fontSize: "12px", padding: "6px 14px", cursor: "pointer" }}
+          >
+            📍 Use Auto-Location
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+

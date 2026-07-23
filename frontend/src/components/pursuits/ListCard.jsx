@@ -24,7 +24,9 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
         const timeB = new Date(b.updated_at || b.completed_at || 0).getTime();
         return timeB - timeA;
       }
-      return 0;
+      const orderA = a.sort_order ?? 0;
+      const orderB = b.sort_order ?? 0;
+      return orderA - orderB;
     });
   const now = new Date();
   const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -64,6 +66,111 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
     }
   };
 
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [dragOverItemId, setDragOverItemId] = useState(null);
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragOver(false);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    setIsDragOver(false);
+
+    const itemId = e.dataTransfer.getData("text/plain");
+    const sourceType = e.dataTransfer.getData("source-type");
+    const sourceParentId = e.dataTransfer.getData("source-parent-id");
+
+    if ((sourceType === "list-item" && sourceParentId !== list.id) || sourceType === "task-card") {
+      try {
+        await updateCommitment(itemId, { parent_id: list.id, due_date: null });
+      } catch (err) {
+        console.error("Failed to move item to list:", err);
+      }
+    }
+  };
+
+  const handleItemDragStart = (e, item) => {
+    e.dataTransfer.setData("text/plain", item.id);
+    e.dataTransfer.setData("source-type", "list-item");
+    e.dataTransfer.setData("source-parent-id", list.id);
+    e.dataTransfer.setData("list-item", "true");
+    e.dataTransfer.setData("parent-" + String(list.id).toLowerCase(), "true");
+    
+    window.dragManager = {
+      draggedItemId: item.id,
+      sourceType: "list-item",
+      sourceParentId: list.id,
+      sourceColumn: null,
+    };
+  };
+
+  const handleItemDragOver = (e, targetItem) => {
+    if (targetItem.status === "completed") return;
+    const dm = window.dragManager;
+    if (!dm) return;
+
+    if (dm.sourceType === "list-item" && String(dm.sourceParentId) === String(list.id)) {
+      e.preventDefault();
+      if (dragOverItemId !== targetItem.id) {
+        setDragOverItemId(targetItem.id);
+      }
+    } else if (dm.sourceType === "list-item" || dm.sourceType === "task-card") {
+      e.preventDefault();
+    }
+  };
+
+  const handleItemDragLeave = () => {
+    setDragOverItemId(null);
+  };
+
+  const handleItemDrop = async (e, targetItem) => {
+    const sourceType = e.dataTransfer.getData("source-type");
+    if (sourceType !== "list-item") {
+      // Let it bubble up to handleDrop of ListCard container
+      return;
+    }
+
+    const dragItemId = e.dataTransfer.getData("text/plain");
+    const dragItem = items.find(it => it.id === dragItemId);
+    if (!dragItem) {
+      // It came from another list card! Let it bubble up to ListCard container's handleDrop!
+      return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOverItemId(null);
+
+    if (dragItemId !== targetItem.id) {
+      if (dragItem.status === "completed" || targetItem.status === "completed") return;
+
+      const activeItems = items.filter(it => it.status !== "completed");
+      const dragIndex = activeItems.findIndex(it => it.id === dragItemId);
+      const targetIndex = activeItems.findIndex(it => it.id === targetItem.id);
+
+      if (dragIndex !== -1 && targetIndex !== -1) {
+        const reordered = [...activeItems];
+        reordered.splice(dragIndex, 1);
+        reordered.splice(targetIndex, 0, dragItem);
+
+        const updates = reordered
+          .map((it, i) => (it.sort_order !== i ? updateCommitment(it.id, { sort_order: i }) : null))
+          .filter(Boolean);
+        try {
+          await Promise.all(updates);
+        } catch (err) {
+          console.error("Failed to update list item sort order:", err);
+        }
+      }
+    }
+  };
+
   const handleAddItem = async (e) => {
     if (e.key === "Enter" && itemInput.trim()) {
       e.preventDefault();
@@ -84,7 +191,17 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
   };
 
   return (
-    <div className="card">
+    <div
+      className="card"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      style={{
+        border: isDragOver ? "2px dashed var(--accent)" : "1px solid var(--border)",
+        boxShadow: isDragOver ? "0 0 0 4px var(--accent-glow)" : undefined,
+        transition: "border var(--transition-fast), box-shadow var(--transition-fast)",
+      }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
         <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, display: "flex", alignItems: "center", gap: 8, overflow: "visible", whiteSpace: "nowrap", flex: 1, minWidth: 0 }}>
           <span
@@ -143,7 +260,6 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
         </p>
       )}
 
-      {/* List items */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         {items.map((item) => {
           const isDone = item.status === "completed";
@@ -152,6 +268,12 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
           return (
             <div
               key={item.id}
+              draggable={!isDone}
+              onDragStart={(e) => handleItemDragStart(e, item)}
+              onDragEnd={() => { window.dragManager = null; }}
+              onDragOver={(e) => handleItemDragOver(e, item)}
+              onDragLeave={handleItemDragLeave}
+              onDrop={(e) => handleItemDrop(e, item)}
               style={{
                 display: "flex",
                 gap: 8,
@@ -161,6 +283,9 @@ export default function ListCard({ list, onOpenDetail, onEdit }) {
                 overflow: "visible",
                 whiteSpace: "nowrap",
                 minWidth: 0,
+                cursor: isDone ? "default" : "grab",
+                borderTop: dragOverItemId === item.id ? "2px solid var(--accent)" : "2px solid transparent",
+                transition: "border-top 0.1s ease",
               }}
             >
               <div

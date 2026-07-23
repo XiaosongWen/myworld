@@ -7,7 +7,7 @@ This document tracks identified issues, feature requests, and technical debt ite
 ## 📌 Feature Requests & UX Enhancements
 
 ### 1. Weather API Integration for Dashboard (Issue #61)
-- **Status**: Deferred to Phase 2 (Tracked in GitHub Issue [#61](https://github.com/XiaosongWen/myworld/issues/61))
+- **Status**: Completed (GitHub Issue [#61](https://github.com/XiaosongWen/myworld/issues/61))
 - **Description**: Connect `WeatherStrip` in `frontend/src/views/DailyLog.jsx` to a real-time Weather API (e.g. Open-Meteo or WeatherAPI) based on user location/timezone.
 
 ### 2. Custom Color Selection for Labels

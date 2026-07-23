@@ -13,7 +13,7 @@ describe("Layout", () => {
     );
 
     // Sidebar title visible
-    expect(screen.getByText("MyWorld")).toBeInTheDocument();
+    expect(screen.getByText("Nest")).toBeInTheDocument();
 
     // Children rendered
     expect(screen.getByText("Page content")).toBeInTheDocument();

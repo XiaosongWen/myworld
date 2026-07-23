@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import { useState } from "react";
 
 const THEMES = [
@@ -20,14 +20,35 @@ export default function Sidebar() {
     <aside className={`sidebar${collapsed ? " collapsed" : ""}`}>
       {/* Brand */}
       <div className="brand">
-        <div className="brand-text-wrapper">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--fg)" }}>
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            <path d="M2 12h20" />
+        <Link to="/" className="brand-text-wrapper" style={{ textDecoration: "none" }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+            <defs>
+              <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#f54e00" />
+                <stop offset="100%" stopColor="#cf2d56" />
+              </linearGradient>
+            </defs>
+            {/* Eggs */}
+            <circle cx="9" cy="11" r="2.5" stroke="url(#logo-grad)" fill="rgba(245, 78, 0, 0.08)" />
+            <circle cx="15" cy="11" r="2.5" stroke="url(#logo-grad)" fill="rgba(245, 78, 0, 0.08)" />
+            <circle cx="12" cy="13" r="2.5" stroke="url(#logo-grad)" fill="rgba(245, 78, 0, 0.08)" />
+            {/* Woven Twigs base */}
+            <path d="M3 13c1 5 17 5 18 0" stroke="url(#logo-grad)" />
+            <path d="M5 15c2 4 12 4 14 0" stroke="url(#logo-grad)" />
+            <path d="M7 17c1.5 3 8.5 3 10 0" stroke="url(#logo-grad)" />
           </svg>
-          <span className="brand-text">MyWorld</span>
-        </div>
+          <span
+            className="brand-text"
+            style={{
+              background: "linear-gradient(135deg, #f54e00 0%, #cf2d56 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              fontWeight: 800,
+            }}
+          >
+            Nest
+          </span>
+        </Link>
         <button
           className="icon-btn sidebar-toggle"
           onClick={() => setCollapsed((c) => !c)}

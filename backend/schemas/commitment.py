@@ -31,6 +31,7 @@ class CommitmentUpdate(BaseModel):
     config: Optional[Dict[str, Any]] = None
     due_date: Optional[date] = None
     sort_order: Optional[int] = None
+    parent_id: Optional[UUID] = None
     label_ids: Optional[List[UUID]] = None
 
 

@@ -58,7 +58,7 @@ describe("App routing", () => {
         <App />
       </MemoryRouter>
     );
-    expect(screen.getByText("MyWorld")).toBeInTheDocument();
+    expect(screen.getByText("Nest")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Photos" })).toBeInTheDocument();
   });
 });

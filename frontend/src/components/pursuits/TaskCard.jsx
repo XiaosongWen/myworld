@@ -1,5 +1,6 @@
 import React from "react";
 import LabelPill from "./LabelPill";
+import { formatLocalDateShort } from "../../utils/date";
 
 const STATUS_ICON = { "completed": "✓", "in-progress": "🔄", "in_progress": "🔄" };
 const PRIORITY_CLASS = { high: "high", medium: "med", low: "low", none: "low" };
@@ -29,6 +30,29 @@ export default function TaskCard({ task, onToggleStatus, onOpenDetail, onEdit })
     }
   }
 
+  const isPastDue = task.due_date && task.due_date < todayISO && !isDone;
+
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData("text/plain", task.id);
+    e.dataTransfer.setData("source-type", "task-card");
+    e.dataTransfer.setData("source-due-date", task.due_date || "");
+    e.dataTransfer.setData("task-card", "true");
+    if (!task.due_date) {
+      e.dataTransfer.setData("column-inbox", "true");
+    } else if (task.due_date === todayISO) {
+      e.dataTransfer.setData("column-today", "true");
+    } else {
+      e.dataTransfer.setData("column-upcoming", "true");
+    }
+    
+    window.dragManager = {
+      draggedItemId: task.id,
+      sourceType: "task-card",
+      sourceParentId: task.parent_id,
+      sourceColumn: !task.due_date ? "inbox" : (task.due_date === todayISO ? "today" : "upcoming"),
+    };
+  };
+
   const handleStatusClick = (e) => {
     e.stopPropagation();
     if (isDoneBeforeToday) return;
@@ -36,7 +60,13 @@ export default function TaskCard({ task, onToggleStatus, onOpenDetail, onEdit })
   };
 
   return (
-    <div className="task-item">
+    <div
+      className="task-item"
+      draggable={!isDone}
+      onDragStart={handleDragStart}
+      onDragEnd={() => { window.dragManager = null; }}
+      style={{ cursor: isDone ? "default" : "grab" }}
+    >
       <span
         className="task-status"
         onClick={handleStatusClick}
@@ -61,7 +91,7 @@ export default function TaskCard({ task, onToggleStatus, onOpenDetail, onEdit })
           onClick={() => onOpenDetail?.(task.id)}
           title="Open Task details"
         >
-          {task.title}
+          {task.config?.icon ? `${task.config.icon} ` : ""}{task.title}
         </span>
         {itemLabels.map((lbl) => (
           <LabelPill key={lbl.id || lbl.name} label={lbl} compact={isCompact} />
@@ -69,8 +99,12 @@ export default function TaskCard({ task, onToggleStatus, onOpenDetail, onEdit })
       </div>
       <div className={`priority-dot ${priorityClass}`} title={`${task.priority} priority`} />
       {task.due_date && (
-        <span className="task-date" title="Due Date">
-          {new Date(task.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+        <span
+          className="task-date"
+          style={{ color: isPastDue ? "var(--danger)" : undefined, fontWeight: isPastDue ? "600" : undefined }}
+          title={isPastDue ? "Overdue" : "Due Date"}
+        >
+          {formatLocalDateShort(task.due_date)}
         </span>
       )}
       <button className="icon-btn" title="Edit" onClick={(e) => { e.stopPropagation(); onEdit?.(task); }} style={{ marginLeft: 4 }}>

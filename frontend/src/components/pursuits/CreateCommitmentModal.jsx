@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import usePursuitsStore from "../../stores/pursuitsStore";
 import LabelPicker from "./LabelPicker";
+import EmojiPicker from "emoji-picker-react";
 
 const TYPES = [
   { id: "habit", icon: "🔄", label: "Habit" },
@@ -16,6 +17,8 @@ export default function CreateCommitmentModal({ defaultType = "habit", commitmen
 
   const [type, setType] = useState(commitmentToEdit?.type || defaultType || "habit");
   const [title, setTitle] = useState(commitmentToEdit?.title || "");
+  const [icon, setIcon] = useState(commitmentToEdit?.config?.icon || "");
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [description, setDescription] = useState(commitmentToEdit?.description || "");
   
   const initialLabels = (commitmentToEdit?.labels || []).map((l) => l.name);
@@ -44,7 +47,10 @@ export default function CreateCommitmentModal({ defaultType = "habit", commitmen
     if (!title.trim()) return;
     setSaving(true);
 
-    const config = { ...(commitmentToEdit?.config || {}) };
+    const config = { 
+      ...(commitmentToEdit?.config || {}),
+      icon: icon || null
+    };
     let priority = isEdit ? (commitmentToEdit.priority || "none") : "none";
     let due_date = isEdit ? commitmentToEdit.due_date : null;
 
@@ -83,11 +89,11 @@ export default function CreateCommitmentModal({ defaultType = "habit", commitmen
       } else {
         await createCommitment({ ...payload, status: "active" });
       }
-      onClose();
     } catch (err) {
       console.error(err);
     } finally {
       setSaving(false);
+      onClose();
     }
   };
 
@@ -180,26 +186,72 @@ export default function CreateCommitmentModal({ defaultType = "habit", commitmen
             <label style={{ display: "block", fontSize: "13px", fontWeight: "500", marginBottom: "8px", color: "var(--fg-muted)" }}>
               Name
             </label>
-            <input
-              autoFocus
-              id="modal-title-input"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Read 10 pages a day"
-              style={{
-                width: "100%",
-                padding: "12px 16px",
-                borderRadius: "8px",
-                border: "1px solid var(--border)",
-                background: "var(--surface)",
-                color: "var(--fg)",
-                fontSize: "14px",
-                outline: "none",
-                boxSizing: "border-box",
-              }}
-              required
-            />
+            <div style={{ display: "flex", gap: "10px", alignItems: "center", position: "relative" }}>
+              <div style={{ position: "relative" }}>
+                <button
+                  type="button"
+                  style={{
+                    width: "46px",
+                    height: "46px",
+                    borderRadius: "8px",
+                    border: "1px solid var(--border)",
+                    background: "var(--surface)",
+                    fontSize: "20px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                  onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                >
+                  {icon || (TYPES.find((t) => t.id === type)?.icon || "📝")}
+                </button>
+                {showEmojiPicker && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "52px",
+                      left: 0,
+                      zIndex: 1010,
+                      boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+                      borderRadius: "8px",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <EmojiPicker
+                      theme="dark"
+                      onEmojiClick={(emojiData) => {
+                        setIcon(emojiData.emoji);
+                        setShowEmojiPicker(false);
+                      }}
+                      width={320}
+                      height={380}
+                      skinTonesDisabled={true}
+                    />
+                  </div>
+                )}
+              </div>
+              <input
+                autoFocus
+                id="modal-title-input"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="e.g. Read 10 pages a day"
+                style={{
+                  flex: 1,
+                  padding: "12px 16px",
+                  borderRadius: "8px",
+                  border: "1px solid var(--border)",
+                  background: "var(--surface)",
+                  color: "var(--fg)",
+                  fontSize: "14px",
+                  outline: "none",
+                  boxSizing: "border-box",
+                }}
+                required
+              />
+            </div>
           </div>
 
           {/* Description */}
