@@ -3,17 +3,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ${APP_IMAGE:-mynest:latest}
-    container_name: ${APP_CONTAINER_NAME:-myworld-prod-app}
+    image: ${APP_IMAGE}
+    container_name: ${APP_CONTAINER_NAME}
     environment:
       APP_ENV: prod
-      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-myworld}:${POSTGRES_PASSWORD:-myworld}@postgres:5432/${POSTGRES_DB:-myworld}}
-      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
-      STORAGE_PATH: ${STORAGE_PATH:-/app/storage}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      STORAGE_PATH: ${STORAGE_PATH}
     ports:
-      - "${APP_PORT:-8000}:8000"
+      - "${APP_PORT}:8000"
     volumes:
-      - ${STORAGE_DATA_DIR:-./data/prod/storage}:/app/storage
+      - ${STORAGE_DATA_DIR}:/app/storage
     depends_on:
       postgres:
         condition: service_healthy
@@ -22,6 +22,6 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '${CPU_LIMIT:-2.0}'
-          memory: ${MEMORY_LIMIT:-2048M}
-    restart: ${RESTART_POLICY:-always}
+          cpus: '${CPU_LIMIT}'
+          memory: ${MEMORY_LIMIT}
+    restart: ${RESTART_POLICY}

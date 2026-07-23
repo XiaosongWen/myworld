@@ -10,7 +10,7 @@ MyWorld is a personal life operating system and workspace application that unifi
 - **Weather & Location Awareness**: Real-time forecast strips and location search.
 - **Label System**: Flexible tags and organization across modules.
 - **Multi-Environment Support**: Clean separation between `dev`, `staging`, and `prod` configurations.
-- **Modular Docker Infrastructure**: Infrastructure services (`postgres`, `redis`) extracted into `docker-compose.infra.yml`, decoupled from application services (`docker-compose.stage.yml`, `docker-compose.prod.yml`).
+- **Modular Docker Infrastructure**: Shared PostgreSQL & Redis infrastructure (`docker-compose.infra.yml`), decoupled from environment-specific application containers (`docker-compose.stage.yml`, `docker-compose.prod.yml`).
 - **Unified Single-Image Deployment**: Bundling React + Vite frontend and FastAPI backend into a single lightweight multi-stage Docker container.
 - **Automated CI/CD**: Automated testing via GitHub Actions and automated Docker image publication to Docker Hub upon release.
 
@@ -73,51 +73,76 @@ docker build -t mynest:latest .
 
 ---
 
-### 3. Infrastructure & Modular Compose Files
+### 3. Infrastructure & Shared Database Deployment
 
-The infrastructure services (`postgres` and `redis`) are separated in `docker-compose.infra.yml`, while application containers reside in `docker-compose.stage.yml` and `docker-compose.prod.yml`. You can compose them together or run them separately.
+The core infrastructure services (`postgres` and `redis`) are defined in `docker-compose.infra.yml`. You can host a single shared PostgreSQL container and point `dev`, `stage`, and `prod` application environments to separate databases (e.g. `myworld_dev`, `myworld_stage`, `myworld_prod`).
 
-#### Environment Parameterization
-You can customize configuration options using environment variables (or a `.env` file):
+Copy `.env.example` to `.env` to configure your environment variables:
+```bash
+cp .env.example .env
+```
 
-| Variable | Description | Default |
-| --- | --- | --- |
-| `POSTGRES_USER` | PostgreSQL Username | `myworld` |
-| `POSTGRES_PASSWORD` | PostgreSQL Password | `myworld` |
-| `POSTGRES_DB` | PostgreSQL Database Name | `myworld` |
-| `POSTGRES_PORT` | PostgreSQL Host Port | `5432` |
-| `REDIS_PORT` | Redis Host Port | `6379` |
-| `APP_PORT` | App Host Port | `8000` (prod), `8001` (stage) |
-| `CPU_LIMIT` | App CPU limit (prod) | `2.0` |
-| `MEMORY_LIMIT` | App Memory limit (prod) | `2048M` |
+#### Shared Infrastructure Variables (`.env`):
+- `POSTGRES_CONTAINER_NAME=myworld-postgres`
+- `POSTGRES_USER=myworld`
+- `POSTGRES_PASSWORD=myworld`
+- `POSTGRES_DB=myworld_dev`
+- `POSTGRES_PORT=5432`
+- `POSTGRES_DATA_DIR=./data/postgres`
+- `REDIS_PORT=6379`
+- `REDIS_DATA_DIR=./data/redis`
 
 ---
 
-### 4. Running Staging Environment (`docker-compose.infra.yml` + `docker-compose.stage.yml`)
+### 4. Running Shared Infrastructure (`docker-compose.infra.yml`)
 
-To start the staging infrastructure and application together:
+Start the shared database and Redis instance:
 
 ```bash
-# Start infrastructure + staging app
-POSTGRES_PORT=5433 REDIS_PORT=6380 POSTGRES_DATA_DIR=./data/stage/postgres REDIS_DATA_DIR=./data/stage/redis \
-docker compose -f docker-compose.infra.yml -f docker-compose.stage.yml up -d --build
+docker compose --env-file .env -f docker-compose.infra.yml up -d
 ```
-
-Access the staging app at `http://localhost:8001`.
 
 ---
 
-### 5. Running Production Environment (`docker-compose.infra.yml` + `docker-compose.prod.yml`)
+### 5. Running Staging Application (`docker-compose.stage.yml`)
 
-To start the production infrastructure and application together:
+Run the staging app connected to `myworld_stage` database:
 
 ```bash
-# Start infrastructure + production app
-POSTGRES_DATA_DIR=./data/prod/postgres REDIS_DATA_DIR=./data/prod/redis \
-docker compose -f docker-compose.infra.yml -f docker-compose.prod.yml up -d --build
+APP_IMAGE=tomaswen/mynest:stage \
+APP_CONTAINER_NAME=mynest-stage-app \
+APP_PORT=8001 \
+DATABASE_URL=postgresql+asyncpg://myworld:myworld@postgres:5432/myworld_stage \
+REDIS_URL=redis://redis:6379 \
+STORAGE_PATH=/app/storage \
+STORAGE_DATA_DIR=./data/stage/storage \
+RESTART_POLICY=unless-stopped \
+docker compose -f docker-compose.stage.yml up -d --build
 ```
 
-Access the production app at `http://localhost:8000`.
+Access staging app at `http://localhost:8001`.
+
+---
+
+### 6. Running Production Application (`docker-compose.prod.yml`)
+
+Run the production app connected to `myworld_prod` database:
+
+```bash
+APP_IMAGE=tomaswen/mynest:latest \
+APP_CONTAINER_NAME=mynest-prod-app \
+APP_PORT=8000 \
+DATABASE_URL=postgresql+asyncpg://myworld:myworld@postgres:5432/myworld_prod \
+REDIS_URL=redis://redis:6379 \
+STORAGE_PATH=/app/storage \
+STORAGE_DATA_DIR=./data/prod/storage \
+CPU_LIMIT=2.0 \
+MEMORY_LIMIT=2048M \
+RESTART_POLICY=always \
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Access production app at `http://localhost:8000`.
 
 ---
 
