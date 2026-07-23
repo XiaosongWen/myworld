@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: myworld-prod-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-myworld}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-myworld}
+      POSTGRES_DB: ${POSTGRES_DB:-myworld}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/prod/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-myworld} -d ${POSTGRES_DB:-myworld}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 1024M
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: myworld-prod-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./data/prod/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    restart: always
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: myworld-prod-app
+    environment:
+      APP_ENV: prod
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-myworld}:${POSTGRES_PASSWORD:-myworld}@postgres:5432/${POSTGRES_DB:-myworld}
+      REDIS_URL: redis://redis:6379
+      STORAGE_PATH: /app/storage
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data/prod/storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2048M
+    restart: always

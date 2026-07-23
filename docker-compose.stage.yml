@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: myworld-stage-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-myworld}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-myworld}
+      POSTGRES_DB: ${POSTGRES_DB:-myworld}
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./data/stage/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-myworld} -d ${POSTGRES_DB:-myworld}"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: myworld-stage-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./data/stage/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: myworld-stage-app
+    environment:
+      APP_ENV: staging
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-myworld}:${POSTGRES_PASSWORD:-myworld}@postgres:5432/${POSTGRES_DB:-myworld}
+      REDIS_URL: redis://redis:6379
+      STORAGE_PATH: /app/storage
+    ports:
+      - "8001:8000"
+    volumes:
+      - ./data/stage/storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
