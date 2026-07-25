@@ -1,15 +1,12 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
     image: ${APP_IMAGE}
     container_name: ${APP_CONTAINER_NAME}
     environment:
       APP_ENV: staging
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
-      STORAGE_PATH: ${STORAGE_PATH}
+      STORAGE_PATH: /app/storage
     ports:
       - "${APP_PORT}:8000"
     volumes:
