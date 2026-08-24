@@ -8,42 +8,44 @@
 
 ```mermaid
 graph TB
-    subgraph Clients
-        WEB["Web UI<br/>(React + Vite)"]
-        IOS["iOS App<br/>(React Native)"]
+    subgraph "Frontend Clients"
+        CF["Web UI (React + Vite)<br/>Hosted on Cloudflare Pages"]
+        IOS["iOS App<br/>(React Native + Expo)"]
     end
 
-    subgraph Backend
-        API["FastAPI Server<br/>(Python)"]
-        AI["AI Engine<br/>(Local Models + API)"]
-        WORKER["Background Workers<br/>(Celery / ARQ)"]
+    subgraph "Backend API (Google Cloud)"
+        RUN["FastAPI Application<br/>Hosted on Google Cloud Run"]
+        AI["AI Engine & LLM Integrations<br/>(Gemini / OpenAI / Claude)"]
     end
 
-    subgraph Storage
-        PG["PostgreSQL<br/>+ pgvector"]
-        FS["Local File Storage<br/>(Photos/Videos/Docs)"]
-        CACHE["Redis<br/>(Cache + Queue)"]
+    subgraph "Managed Cloud Platform (Supabase)"
+        PG["Supabase PostgreSQL 16<br/>+ pgvector"]
+        STORAGE["Supabase Storage<br/>(Photos/Videos/Docs Buckets)"]
+        AUTH["Supabase Auth<br/>(JWT Tokens & Users)"]
     end
 
-    WEB -->|REST / WebSocket| API
-    IOS -->|REST / WebSocket| API
-    API --> PG
-    API --> FS
-    API --> CACHE
-    API --> AI
-    WORKER --> PG
-    WORKER --> FS
-    WORKER --> AI
-    CACHE --> WORKER
+    subgraph "Cache & Async Tasks"
+        REDIS["Redis / Upstash<br/>(Cache + Task Queue)"]
+    end
+
+    CF -->|HTTPS REST / WebSocket| RUN
+    IOS -->|HTTPS REST / WebSocket| RUN
+    CF -->|Direct Auth / CDN Media| STORAGE
+    CF -->|Auth / Session| AUTH
+    RUN --> PG
+    RUN --> STORAGE
+    RUN --> AUTH
+    RUN --> REDIS
+    RUN --> AI
 ```
 
 ### Key Design Principles
 
-- **Modular architecture** — each feature is an independent module with its own routes, models, and services
-- **User-scoped from day 1** — every record has a `user_id` for future multi-user support
-- **API-first** — web and iOS share the same REST API
-- **Background processing** — AI tasks (face detection, embeddings, OCR) run asynchronously via task queue
-- **Local-first** — everything runs on your PC, designed for future cloud migration
+- **Cloud-Native & Serverless** — Frontend on Cloudflare Pages, Backend on Google Cloud Run (auto-scaling to zero), and Database/Storage on Supabase.
+- **Low Maintenance & High Availability** — Fully managed infrastructure with no self-hosted server maintenance required.
+- **User-Scoped & Secure from Day 1** — Powered by Supabase Auth (JWT) and PostgreSQL Row Level Security (RLS) / user scoping.
+- **API-First & Decoupled** — Web and mobile share the same REST API with standardized envelopes.
+- **Asynchronous AI Processing** — Background tasks for embeddings, summaries, and vision processing run seamlessly in the cloud.
 
 ---
 
@@ -51,18 +53,17 @@ graph TB
 
 | Layer | Technology | Why |
 |---|---|---|
-| **Web Frontend** | React 18 + Vite + React Router | You already know it, fast dev experience |
-| **iOS App** | React Native + Expo | Shares JS/React skills, code reuse with web |
-| **Backend API** | Python 3.12 + FastAPI | You already know it, async, great for AI/ML |
-| **Database** | PostgreSQL 16 + pgvector | Relational + vector search in one DB |
-| **Cache / Queue** | Redis | Fast caching + task queue broker |
-| **Task Queue** | ARQ (async Redis queue) | Lightweight, Python-native, async-first |
-| **File Storage** | Local filesystem (structured folders) | Simple, free, fast with SSD |
-| **AI - Vision** | YOLO v8 / InsightFace (local, GPU) | Object detection + face recognition on RTX 4090 |
-| **AI - Embeddings** | CLIP (images) + Sentence-Transformers (text) | Multi-modal embeddings for search |
-| **AI - LLM** | Local: Ollama (Llama/Mistral) + External: OpenAI/Gemini API | RAG, summarization, chat |
-| **AI - OCR** | PaddleOCR or Tesseract | Extract text from documents/images |
-| **Containerization** | Docker + Docker Compose | One command to start everything |
+| **Web Frontend Hosting** | Cloudflare Pages | Instant global CDN, fast edge deployment, zero maintenance |
+| **Web Frontend Framework** | React 18 + Vite + React Router | High-performance SPA with modern React tooling |
+| **Mobile App** | React Native + Expo | Code reuse with web API client, fast cross-platform delivery |
+| **Backend API & Hosting** | Python 3.12 + FastAPI on Google Cloud Run | Fast async execution, containerized auto-scaling, scale-to-zero cost efficiency |
+| **Database** | Supabase (PostgreSQL 16 + pgvector) | Fully managed Postgres with native vector search support |
+| **Authentication** | Supabase Auth (JWT) | Robust user management, social auth ready, secure token handling |
+| **File Storage** | Supabase Storage (S3-compatible) | Managed CDN buckets for photos, videos, books, documents, avatars |
+| **Cache / Queue** | Redis (Upstash / Cloud Redis) | Low-latency caching and background worker broker |
+| **AI - LLM Engine** | External Cloud APIs (Gemini / OpenAI / Anthropic) | Cloud-native intelligence for workout planning, RAG, and summarization |
+| **AI - Embeddings & Vision** | Cloud Vision / Local AI workers + Sentence-Transformers | Multi-modal embeddings stored directly in Supabase pgvector |
+| **Containerization & CI/CD** | Docker + GitHub Actions | Automated build & deploy to Cloud Run and Cloudflare Pages |
 
 ---
 
@@ -126,7 +127,27 @@ entity_labels:  label_id, entity_id, entity_type, created_at
 
 ---
 
-### 3.4 Photo Library Module
+### 3.4 Workout & Fitness Module (AI-Enabled)
+
+> An intelligent workout planner, real-time coach, and session logger that enables custom split generation, daily exercise guidance, and progressive overload tracking.
+
+**Features:**
+- **AI Workout Plan Generator**: Generates tailored multi-day workout splits (e.g., PPL, Upper/Lower, Full Body) based on fitness goals, equipment, schedule, and experience level.
+- **AI Daily Suggestions & Coach**: Dynamic daily routine recommendations adapting to soreness, target muscle groups, time constraints, and available equipment.
+- **Detailed Session Logger**: Log exercises, sets, reps, weight (kg/lbs), RPE, rest duration, and exercise notes with one-click completion.
+- **Progressive Overload & Analytics**: Computes volume load, track personal records (PRs), frequency, and generates AI recovery & overload insights.
+- **Dashboard & Pursuits Sync**: Automatically syncs workout completions with daily logs and commitments.
+
+**Key DB Tables:**
+```
+workout_plans:     id, user_id, title, description, split_type, schedule_days(JSONB), routine_data(JSONB), is_active, created_at, updated_at
+workout_sessions:  id, user_id, plan_id(optional), date, title, duration_minutes, notes, status, created_at, updated_at
+workout_exercises: id, session_id, exercise_name, muscle_group, sets_data(JSONB), sort_order, notes, created_at
+```
+
+---
+
+### 3.5 Photo Library Module
 
 **Features:**
 - Upload & organize photos into albums
@@ -152,7 +173,7 @@ photo_embeddings: id, photo_id, embedding (vector 512/768 dim)
 
 ---
 
-### 3.5 Video Library Module
+### 3.6 Video Library Module
 
 **Features:**
 - Upload & organize videos into collections
@@ -172,7 +193,7 @@ video_tags: id, video_id, tag, confidence, source
 
 ---
 
-### 3.6 Ebook Module
+### 3.7 Ebook Module
 
 **Features:**
 - Upload ebooks (EPUB, PDF)
@@ -193,7 +214,7 @@ highlights: id, book_id, user_id, text, page, color, note, created_at
 
 ---
 
-### 3.7 Document Module
+### 3.8 Document Module
 
 **Features:**
 - Upload documents (PDF, Word, text, markdown)
@@ -214,7 +235,7 @@ doc_embeddings: id, document_id, chunk_index, chunk_text, embedding (vector)
 
 ---
 
-### 3.8 Knowledge Space Module
+### 3.9 Knowledge Space Module
 
 **Features:**
 - Create knowledge bases (topics/areas)
@@ -242,16 +263,18 @@ note_embeddings: id, note_id, chunk_index, chunk_text, embedding (vector)
 ### URL Structure
 ```
 /api/v1/auth/...              # Future: login, register, token
-/api/v1/dashboard/...          # Dashboard aggregation
-	/api/v1/pursuits/...           # Commitments + Records (habits, goals, tasks, lists, planner)
-/api/v1/photos/...             # Upload, list, search
-/api/v1/albums/...             # Album management
-/api/v1/videos/...             # Upload, list, stream
-/api/v1/books/...              # Library, reading progress
-/api/v1/documents/...          # Upload, search, preview
-/api/v1/knowledge/...          # Spaces, notes, RAG queries
-/api/v1/ai/...                 # AI operations (search, ask, detect)
-/api/v1/files/...              # File serving (thumbnails, media)
+/api/v1/dashboard/...         # Dashboard aggregation
+/api/v1/pursuits/...          # Commitments + Records (habits, goals, tasks, lists, planner)
+/api/v1/labels/...            # Global label system (create, attach, detach)
+/api/v1/workouts/...          # AI workout plans, suggestions, sessions & exercise logs
+/api/v1/photos/...            # Upload, list, search
+/api/v1/albums/...            # Album management
+/api/v1/videos/...            # Upload, list, stream
+/api/v1/books/...             # Library, reading progress
+/api/v1/documents/...         # Upload, search, preview
+/api/v1/knowledge/...         # Spaces, notes, RAG queries
+/api/v1/ai/...                # AI operations (search, ask, detect)
+/api/v1/files/...             # File serving (thumbnails, media)
 ```
 
 ### Common Patterns
@@ -299,55 +322,59 @@ graph LR
     PGV --> LLM
 ```
 
-### AI Processing Flow
-1. **User uploads a photo** → API saves file, creates DB record, enqueues AI tasks
-2. **Background worker picks up tasks:**
-   - Face detection → crop faces → compute face embeddings → match against known persons → store
-   - Object detection → extract labels ("dog", "beach", "car") → store as tags
-   - CLIP embedding → store 512-dim vector for semantic search
-3. **User searches "photos of my dog at the beach"** → embed query with CLIP → pgvector similarity search → return results
+## 5. AI Pipeline Architecture
 
-### Local Model Sizing (RTX 4090 — 24GB VRAM)
-| Model | VRAM Usage | Purpose |
-|---|---|---|
-| InsightFace | ~1 GB | Face detection + recognition |
-| YOLOv8-l | ~2 GB | Object detection |
-| CLIP ViT-L/14 | ~2 GB | Image-text embeddings |
-| Sentence-Transformers | ~1 GB | Text embeddings |
-| Ollama (Llama 3 8B) | ~6 GB | Local LLM for RAG |
-| **Total** | **~12 GB** | Leaves 12GB headroom |
+```mermaid
+graph LR
+    subgraph "Upload Triggers & Webhooks"
+        P["Photo Upload"]
+        V["Video Upload"]
+        D["Document Upload"]
+        N["Note Saved"]
+        W["Workout Plan Prompt"]
+    end
+
+    subgraph "Serverless & Cloud AI Processing"
+        LLM["Cloud LLM (Gemini / OpenAI / Claude)<br/>Workout Coaching & RAG"]
+        EMB["Sentence-Transformers / Cloud Embeddings<br/>Text & Document Chunks"]
+        VISION["Cloud Vision API / Microservice<br/>Object & Scene Detection"]
+    end
+
+    subgraph "Storage & Retrieval"
+        SUPA_PG["Supabase PostgreSQL<br/>+ pgvector"]
+        SUPA_BUCKET["Supabase Storage Buckets<br/>(Photos/Videos/Docs)"]
+    end
+
+    P --> SUPA_BUCKET
+    V --> SUPA_BUCKET
+    D --> SUPA_BUCKET
+    P --> VISION --> SUPA_PG
+    D --> EMB --> SUPA_PG
+    N --> EMB --> SUPA_PG
+    W --> LLM --> SUPA_PG
+```
+
+### AI Processing Flow
+1. **User requests workout plan / coaching** → Cloud Run invokes LLM (Gemini/OpenAI API) with user profile & historical session logs → saves structured routine to Supabase DB.
+2. **User uploads media/document** → Asset saved to Supabase Storage bucket, DB record created, async embedding/vision tasks triggered.
+3. **Semantic search & RAG** → Embed query → pgvector cosine distance search in Supabase → synthesize answer with Cloud LLM.
 
 ---
 
-## 6. File Storage Structure
+## 6. File Storage Structure (Supabase Storage)
 
-```
-myworld-storage/
-├── photos/
-│   ├── originals/
-│   │   └── 2026/05/06/
-│   │       └── {uuid}.jpg
-│   └── thumbnails/
-│       └── 2026/05/06/
-│           ├── {uuid}_sm.jpg    (200px)
-│           ├── {uuid}_md.jpg    (600px)
-│           └── {uuid}_lg.jpg    (1200px)
-├── videos/
-│   ├── originals/
-│   │   └── 2026/05/06/{uuid}.mp4
-│   └── thumbnails/
-│       └── 2026/05/06/{uuid}_thumb.jpg
-├── books/
-│   └── {uuid}.epub
-├── documents/
-│   └── {uuid}.pdf
-└── avatars/
-    └── {uuid}.jpg
-```
+Media assets and user documents are stored in dedicated **Supabase Storage Buckets** backed by global CDN:
 
-- Files organized by **date** to avoid too many files per folder
-- UUIDs for filenames to prevent conflicts
-- Originals always preserved, thumbnails are regeneratable
+| Bucket Name | Purpose | Access Policy |
+|---|---|---|
+| `photos` | Photo library originals and thumbnails | Private / authenticated user scoped |
+| `videos` | Video originals, compressed streaming files, and preview clips | Private / authenticated user scoped |
+| `books` | EPUB / PDF books | Private / authenticated user scoped |
+| `documents` | User documents, notes attachments, and OCR files | Private / authenticated user scoped |
+| `avatars` | User profile avatars | Public / authenticated |
+
+**Object Path Convention:**
+`{user_id}/{year}/{month}/{uuid}.{ext}` (e.g. `u123/2026/08/9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d.jpg`)
 
 ---
 
@@ -355,27 +382,31 @@ myworld-storage/
 
 ```
 myworld/
-├── docker-compose.dev.yml          # PostgreSQL, Redis — local dev infrastructure
-├── docker-compose.staging.yml      # All services — self-contained staging environment
-├── .env                            # Config: DB credentials, API keys, storage path
+├── docker-compose.dev.yml          # Local dev infra (PostgreSQL + Redis)
+├── Dockerfile.backend              # Cloud Run container image for FastAPI
+├── .env.example                    # Template for Supabase, Cloud Run, and LLM keys
 ├── README.md
 │
 ├── backend/
 │   ├── requirements.txt
+│   ├── Dockerfile                  # Container build for Google Cloud Run
 │   ├── main.py                     # FastAPI app entry point
-│   ├── config.py                   # Settings (from .env)
+│   ├── config.py                   # Settings (Supabase DB URL, Auth keys, Cloud Run PORT)
 │   ├── core/                       # Core infrastructure (logger, app setup)
 │   │   ├── __init__.py
 │   │   ├── logger.py               # Loguru logging config
 │   │   └── setup.py                # App setup (middleware, exception handlers)
-│   ├── middlewares/                 # FastAPI middlewares
+│   ├── middlewares/                # FastAPI middlewares (logging, auth verification)
 │   │   ├── __init__.py
-│   │   └── logging_middleware.py   # Request ID generation, timing, logging
-│   ├── database.py                 # SQLAlchemy engine + session
+│   │   ├── logging_middleware.py   # Request ID generation, timing, logging
+│   │   └── auth_middleware.py      # Supabase JWT token verification
+│   ├── database.py                 # SQLAlchemy async engine configured for Supabase PostgreSQL
 │   ├── models/                     # SQLAlchemy ORM models
 │   │   ├── user.py
 │   │   ├── commitment.py
 │   │   ├── record.py
+│   │   ├── label.py
+│   │   ├── workout.py
 │   │   ├── photo.py
 │   │   ├── video.py
 │   │   ├── book.py
@@ -383,62 +414,57 @@ myworld/
 │   │   └── knowledge.py
 │   ├── schemas/                    # Pydantic request/response schemas
 │   ├── routers/                    # API route handlers (one per module)
-│   ├── services/                   # Business logic layer
-│   ├── ai/                         # AI processing modules
-│   │   ├── face_recognition.py
-│   │   ├── object_detection.py
-│   │   ├── embeddings.py
-│   │   ├── ocr.py
-│   │   └── rag.py
-│   ├── workers/                    # Background task definitions
+│   ├── services/                   # Business logic layer (workouts, pursuits, llm, supabase_storage)
+│   │   ├── llm_service.py          # Multi-provider LLM service
+│   │   ├── storage_service.py      # Supabase S3/Storage client
+│   │   ├── workout_service.py
+│   │   └── commitment_service.py
 │   └── utils/                      # Shared utilities
 │
 ├── frontend/
 │   ├── package.json
-│   ├── vite.config.js
+│   ├── vite.config.js              # Vite build configured for Cloudflare Pages
 │   ├── index.html
 │   └── src/
 │       ├── main.jsx
 │       ├── App.jsx
-│       ├── api/                    # API client (shared patterns for mobile)
-│       ├── components/             # Reusable UI components
+│       ├── api/                    # API client (pointing to Cloud Run backend)
+│       ├── components/             # Reusable UI components (Heatmap, Sidebar, etc.)
 │       ├── views/                  # Page-level components
 │       │   ├── Dashboard.jsx
 │       │   ├── Commitments.jsx
 │       │   ├── DailyLog.jsx
+│       │   ├── Workouts.jsx
 │       │   ├── Photos.jsx
 │       │   ├── Videos.jsx
 │       │   ├── Books.jsx
 │       │   ├── Documents.jsx
 │       │   └── Knowledge.jsx
 │       ├── hooks/                  # Custom React hooks
-│       ├── stores/                 # State management (Zustand or Context)
+│       ├── stores/                 # State management (Zustand)
 │       └── styles/                 # CSS files
 │
 ├── mobile/                         # React Native (Expo)
 │   ├── package.json
 │   ├── app.json
-│   ├── App.js
-│   ├── src/
-│   │   ├── screens/               # Screen components
-│   │   ├── components/            # Reusable mobile components
-│   │   ├── api/                   # Shared API client (can share with web)
-│   │   ├── navigation/            # React Navigation setup
-│   │   └── stores/                # State management
-│   └── assets/
+│   └── src/
 │
 └── scripts/
-    ├── setup.sh                   # Initial setup script
-    └── seed.py                    # Optional: seed demo data
+    ├── deploy_backend_cloud_run.sh # Deploy script for Google Cloud Run
+    └── setup_supabase.py           # Supabase bucket initialization script
 ```
 
-- **Phase 1 Stack (local dev):**
-  - Host OS runs `uvicorn main:app --reload` (FastAPI) and `npm run dev` (Vite, port 5173 with `/api` proxying to `http://localhost:8000`).
-  - Docker Compose runs Postgres pgvector (`mynest-postgres:5432`) and Redis (`mynest-redis:6379`).
+### Environment & Deployment Architecture
 
-- **Production Target (Phase 2+):**
-  - Single multi-stage Docker image (`mynest`) containing Node-built static frontend assets and FastAPI backend.
-  - Deployed alongside Postgres pgvector and Redis via `docker-compose.prod.yml`.
+- **Local Development:**
+  - Frontend: `npm run dev` on Vite (port 5173).
+  - Backend: `uvicorn main:app --reload` on port 8000.
+  - Database & Storage: Connected directly to Supabase cloud instance (or local Docker compose).
+
+- **Production Cloud Deployment:**
+  - **Frontend:** Built via Vite (`npm run build`) and deployed to **Cloudflare Pages** (global CDN edge).
+  - **Backend:** Containerized via Dockerfile and deployed to **Google Cloud Run** with automatic HTTPS, environment variable injection, and scale-to-zero.
+  - **Database & Auth & Storage:** Hosted on **Supabase** (Postgres 16 + pgvector + Supabase Auth + Supabase Storage).
 
 ---
 
@@ -446,16 +472,16 @@ myworld/
 
 > 📋 See [roadmap.md](./roadmap.md) for the full roadmap with progress tracking.
 
-| Phase | What | Weeks |
+| Phase | Milestone | Scope |
 |---|---|---|
-| **1** | Foundation (Docker, FastAPI, React scaffold) | 1-2 |
-| **2** | Habit Tracker + Task Manager + Dashboard | 3-6 |
-| **3** | iOS App v1 (Dashboard, Habits, Tasks) | 7-9 |
-| **4** | Knowledge Space + RAG | 10-13 |
-| **5** | Media & Files (Photos, Videos, Ebooks, Docs) | 14-19 |
-| **6** | AI Features (face/object detection, embeddings) | 20-24 |
-| **7** | iOS App v2 (expand to all modules) | 25-28 |
-| **8** | Multi-user & Cloud | Future |
+| **1** | Foundation | Scaffolds, Alembic migrations, database layer, baseline API |
+| **2** | Core Modules | Pursuits (Commitments + Records), AI Workout Module, Video Management |
+| **3** | Web UI Responsiveness & Secure Cloud Deployment | Responsive Web UI (Desktop, iPad, iPhone), Cloud Hardening, Cloudflare Pages + Cloud Run + Supabase deployment ("Test & Experience") |
+| **4** | Knowledge Space + Cloud RAG | Notes, links, Supabase pgvector text embeddings & LLM RAG chat |
+| **5** | Photos, Ebooks & Documents | Photo library with thumbnails/tags, PDF/EPUB reader, document full-text search |
+| **6** | Advanced Cloud AI Features | Cloud Vision analysis, automated highlights ingestion, smart insights |
+| **7** | Mobile App (React Native / iOS & Android) | Consolidated native mobile app (Expo, camera upload, push notifications, offline sync) |
+| **8** | Multi-User & Family Sharing | Multi-user accounts, family sharing, backup & export system |
 
 ---
 
@@ -463,29 +489,26 @@ myworld/
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Monorepo vs separate repos | **Monorepo** | Easier to manage for personal project |
-| ORM | **SQLAlchemy 2.0** | Mature, great PostgreSQL + pgvector support |
-| Migrations | **Alembic** | Standard for SQLAlchemy |
-| State management (web) | **Zustand** | Lightweight, simple, no boilerplate |
-| State management (mobile) | **Zustand** | Same as web — shared mental model |
-| API client | **Axios** | Can share between web & React Native |
-| Background tasks | **ARQ** | Async, lightweight, Redis-based |
-| Containerization | **Docker Compose** | One command: `docker-compose up` |
-| AI model serving | **Direct Python** (not separate service) | Simpler for personal use, models loaded in workers |
+| Frontend Hosting | **Cloudflare Pages** | Zero maintenance, blazing-fast global edge CDN, seamless Vite integration |
+| Backend Hosting | **Google Cloud Run** | Containerized serverless compute, auto-scaling to zero, low cost, HTTPS built-in |
+| Database & Auth | **Supabase (PostgreSQL 16 + pgvector + Auth)** | Fully managed relational database + vector search + turnkey JWT authentication |
+| Media Storage | **Supabase Storage** | S3-compatible buckets with CDN integration, unified access control with DB |
+| LLM Provider | **Configurable Cloud LLM (Gemini / OpenAI)** | High-quality intelligence without needing local GPU hardware always running |
+| Monorepo vs separate repos | **Monorepo** | Single repository simplifies coordinated frontend, backend, and mobile changes |
+| State Management | **Zustand** | Lightweight, simple, shared mental model between Web and Mobile |
 
 ---
 
 ## Verification Plan
 
-### Phase 1 Verification
-- `docker-compose up` starts all services successfully
-- API health endpoint returns 200
-- Web UI loads with navigation sidebar
-- Database tables created via migration
+### Cloud Test & Experience Deployment Verification
+- Supabase PostgreSQL instance reachable and Alembic migrations applied cleanly.
+- Google Cloud Run service deployed, healthy, and servicing API routes at `/api/v1/...`.
+- Cloudflare Pages build deployed and communicating with Cloud Run backend via HTTPS with valid CORS.
+- User can interact with **Dashboard**, **Pursuits**, **Daily Log**, and **Calendar Heatmap** on the live cloud URL.
 
-### Per-Module Verification
-- Full CRUD operations work via API + UI
-- File uploads save correctly to structured storage
-- Background AI tasks process and store results
-- Semantic search returns relevant results
+### Module Progression Verification
+- **AI Workout Module**: Generates plans, logs sets/reps, calculates progressive volume, and updates daily calendar.
+- **Video Management**: Uploads videos to Supabase Storage bucket, streams video smoothly in browser.
+- **Data Integrity**: All records persist with accurate user scoping and proper timestamps.
 

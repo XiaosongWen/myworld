@@ -12,6 +12,7 @@
 | Core | backend | GitHub-like Label System | Unified label system applying across commitments, records, knowledge, and documents using a polymorphic join table entity_labels. | Accepted | 2026-07-18 | 2026-07-18 | [backend-02-label-system.md](backend-02-label-system.md) |
 | Dashboard / Pursuits | frontend | Dashboard + Pursuits UI/UX | Unified daily journal Dashboard and Pursuits browse page with filter-able views for habits, goals, tasks, and lists | Accepted | 2026-07-15 | 2026-07-15 | [frontend-01-dashboard-and-pursuits-ui.md](frontend-01-dashboard-and-pursuits-ui.md) |
 | Core | backend | Standardized API Response Envelope | Refactored API responses to use a standardized JSON envelope with a request_id for consistent error handling and metadata | Accepted | 2026-07-19 | 2026-07-19 | [backend-03-api-response-envelope.md](backend-03-api-response-envelope.md) |
+| Core | infra | Cloud-Native Deployment Architecture | Migrated from home PC self-hosting to Cloudflare Pages (Frontend) + Google Cloud Run (Backend) + Supabase (Database, Auth, Storage) | Accepted | 2026-08-24 | 2026-08-24 | [infra-01-cloud-deployment-architecture.md](infra-01-cloud-deployment-architecture.md) |
 
 ## Writing a Decision
 

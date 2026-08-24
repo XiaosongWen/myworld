@@ -15,78 +15,102 @@
 ---
 
 ## Phase 2 — Core Modules (Weeks 3-6)
-> Build the unified Pursuits (Commitments + Records) core module and Dashboard, replacing separate Habit/Task/Goal modules with a flexible 3-table architecture.
+> Build and refine the core Pursuits (Commitments + Records), AI-Enabled Workout & Fitness Module, and Video Management Module.
 
 - [x] **Habit Tracker & Task Manager (Legacy)** — Replaced by Pursuits refactor
 - [x] **API Response Standardization** — Standardized JSON envelope
 - [x] **Logging & Tracing** — Loguru integration, request-level logging
-- [ ] **Backend Config Migration** — YAML configs per environment
-- [ ] **Deployment Compose Setup** — docker-compose stage/prod files
-- [ ] **Pursuits Core Module: Backend** — commitments, commitment_links, records CRUD & progress
-- [ ] **Pursuits Core Module: Frontend** — Unified Pursuits UI (Commitments, Detail, DailyLog)
+- [ ] **Pursuits Core Module: Backend** — Commitments, links, records CRUD, and progress computation
+- [ ] **Pursuits Core Module: Frontend** — Unified Pursuits UI, Calendar heatmap, MonthGlance, and DailyLog
 - [ ] **Dashboard Module** — Consolidated daily overview via Pursuits API
-- [ ] **Label System: Backend** — Cross-cutting tagging for all entities
-- [ ] **Integration: UI & API + Integration Tests** — Data binding and E2E testing
+- [ ] **Label System: Backend & Frontend** — Cross-cutting tagging for all entities
+- [ ] **AI-Enabled Workout & Fitness Module** —
+  - [ ] **Backend Data Models & Migrations** — `workout_plans`, `workout_sessions`, `workout_exercises` tables
+  - [ ] **AI Assistant & Cloud LLM Service Layer** — Multi-provider support (Gemini, OpenAI, Claude, heuristic fallback)
+  - [ ] **AI Workout Plan Generator** — Tailored multi-day splits based on goals, schedule, equipment, experience
+  - [ ] **AI Daily Coach & Suggestions** — Real-time routine recommendations adapting to fatigue, soreness, and time constraints
+  - [ ] **Detailed Workout & Exercise Logger** — Session tracking with sets, reps, weight, RPE, rest timer, and notes
+  - [ ] **Workout History & Progressive Overload Analytics** — Volume load tracking, PR milestones, and AI recovery/progression insights
+  - [ ] **Frontend Workouts View & Active Logger UI** — Dedicated `/workouts` page, interactive logger, sidebar navigation, and daily dashboard sync
+- [ ] **Video Management Module** —
+  - [ ] **Video Upload & Supabase Storage Integration** — Direct/resumable upload to Supabase video bucket
+  - [ ] **Collections & Metadata Extraction** — Duration, resolution, codec, and thumbnail/preview clip generation
+  - [ ] **Streaming Video Player UI** — Smooth in-browser playback with collections and tag filtering
 
 ---
 
-## Phase 3 — iOS App v1 (Weeks 7-9)
-> Early mobile experience with core modules
+## Phase 3 — Web UI Responsiveness & Secure Cloud Deployment (Weeks 7-9)
+> Make the Web UI fully responsive across Desktop, iPad/Tablet, and Mobile Phone viewports, harden security, and deploy live to Cloudflare Pages + Google Cloud Run + Supabase for immediate cross-device access.
 
-- [ ] React Native (Expo) project setup
-- [ ] Shared API client layer
-- [ ] Core screens: Dashboard, Habits, Tasks
-- [ ] Push notifications for habit reminders
-- [ ] Evaluate iOS experience → decide on further mobile investment
+- [ ] **Web UI Responsive Adaptation (Desktop, iPad, Phone)** —
+  - [ ] Responsive navigation shell (collapsible sidebar / mobile bottom bar & touch drawer)
+  - [ ] Viewport-specific layouts for Dashboard, Calendar Heatmap, and MonthGlance on tablets and mobile screens
+  - [ ] Touch-friendly Pursuits, Workouts active logger, and daily check-in UI
+- [ ] **Security & Cloud Hardening** —
+  - [ ] Supabase JWT token verification middleware for FastAPI backend
+  - [ ] PostgreSQL Row Level Security (RLS) & user-scoped data queries
+  - [ ] Secure CORS whitelist for Cloudflare Pages production and preview domains
+  - [ ] Google Cloud Secret Manager / environment variables injection
+  - [ ] Security headers and request rate/payload limits
+- [ ] **Supabase Cloud Setup** —
+  - [ ] Provision PostgreSQL 16 with `pgvector` extension
+  - [ ] Apply Alembic migrations to cloud database
+  - [ ] Configure Supabase Storage buckets (`photos`, `videos`, `books`, `documents`, `avatars`)
+  - [ ] Configure Supabase Auth
+- [ ] **Google Cloud Run Backend Deployment** —
+  - [ ] Build production Docker container for FastAPI
+  - [ ] Configure Cloud Run service (auto-scaling to zero, custom domain/HTTPS, secrets)
+- [ ] **Cloudflare Pages Frontend Deployment** —
+  - [ ] Build and deploy Vite React SPA on Cloudflare Pages global edge CDN
+  - [ ] Set `VITE_API_BASE_URL` to Cloud Run backend endpoint
+- [ ] **End-to-End Cloud Validation ("Test & Experience")** —
+  - [ ] Verify live experience from iPhone, iPad, and Desktop browsers
+  - [ ] Validate Calendar Heatmap, Daily Log, Pursuits, Workouts, and Video streaming
 
 ---
 
-## Phase 4 — Knowledge Space (Weeks 10-13)
+## Phase 4 — Knowledge Space & Cloud RAG (Weeks 10-13)
 > Connect and organize your thinking
 
-- [ ] **Knowledge Space** — create spaces, markdown notes, note linking
-- [ ] RAG chat interface ("ask your knowledge base")
-- [ ] Text embeddings + semantic search (Sentence-Transformers + pgvector)
+- [ ] **Knowledge Space** — Create spaces, markdown notes, note linking
+- [ ] **Cloud RAG Chat Interface** — "Ask your knowledge base" powered by Gemini / OpenAI
+- [ ] **Text Embeddings & Vector Search** — Sentence-Transformers / Cloud embeddings stored in Supabase pgvector
 
 ---
 
-## Phase 5 — Media & File Libraries (Weeks 14-19)
-> Photo, video, ebook, and document management
+## Phase 5 — Photo Library, Ebooks & Documents (Weeks 14-19)
+> Media & file management backed by Supabase Storage
 
-- [ ] **Photo Library** — upload, albums, thumbnails, timeline view, EXIF extraction
-- [ ] **Video Library** — upload, collections, thumbnails, streaming playback
-- [ ] **Ebook Module** — upload, epub/pdf reader, progress tracking, highlights
-- [ ] **Document Module** — upload, folder structure, preview, full-text search
-- [ ] File storage infrastructure (organized folder structure)
+- [ ] **Photo Library** — Upload to Supabase bucket, albums, timeline view, EXIF extraction, thumbnails
+- [ ] **Ebook Module** — Upload EPUB/PDF to Supabase Storage, in-browser reader, highlights & progress
+- [ ] **Document Module** — Upload, folder structure, preview, OCR, full-text search
 
 ---
 
-## Phase 6 — AI Features (Weeks 20-24)
+## Phase 6 — Advanced Cloud AI Features (Weeks 20-24)
 > Intelligence layer across all modules
 
-- [ ] Setup local AI models (InsightFace, YOLOv8, CLIP, Sentence-Transformers)
-- [ ] Background worker infrastructure (ARQ + Redis)
-- [ ] Photo: face detection, object tagging, CLIP embeddings, semantic search
-- [ ] Document: OCR, text embeddings, semantic search
-- [ ] Knowledge Space: RAG pipeline (chunk → embed → retrieve → LLM answer)
-- [ ] Auto-import book highlights & documents into Knowledge Space
+- [ ] Cloud Vision integration: face detection, object tagging, CLIP embeddings
+- [ ] Document OCR pipeline & semantic search
+- [ ] Knowledge Space: automated highlight extraction from books & documents
 
 ---
 
-## Phase 7 — iOS App v2 + Polish (Weeks 25-28)
-> Expand mobile to all modules
+## Phase 7 — Mobile App (React Native / iOS & Android) (Weeks 25-28)
+> Consolidated native mobile application development (combining all v1 and v2 mobile tasks)
 
-- [ ] Add screens: Photos, Videos, Books, Documents, Knowledge
-- [ ] Photo capture & upload from phone
-- [ ] Offline support for habits & tasks
+- [ ] **React Native (Expo) Project Setup** — App shell & navigation in `/mobile`
+- [ ] **Shared API Client Layer** — Unified SDK for Web and Mobile
+- [ ] **Core Mobile Screens** — Dashboard, Pursuits, Workouts, Daily Log, Media Libraries
+- [ ] **Push Notifications** — Habit, workout, and commitment reminders
+- [ ] **Photo & Video Capture** — Direct camera capture and upload from phone
+- [ ] **Offline Caching & Sync** — Local SQLite caching for offline workout & habit tracking
 
 ---
 
-## Phase 8 — Multi-user & Cloud (Future)
-> Production-ready
+## Phase 8 — Multi-User & Family Sharing (Future)
+> Production-ready collaboration
 
-- [ ] Authentication system (JWT)
-- [ ] Multi-user: registration, login, per-user data isolation
-- [ ] Family sharing: shared albums, shared task lists
-- [ ] Cloud migration path (Docker → cloud hosting)
-- [ ] Backup & restore system
+- [ ] Multi-user registration & organization isolation
+- [ ] Family sharing: shared albums, shared workout splits, shared task lists
+- [ ] Backup & export system
