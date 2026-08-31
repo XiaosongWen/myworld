@@ -30,15 +30,15 @@
 - [ ] **AI-Enabled Workout & Fitness Module** (#71) —
   - [ ] **Backend Data Models & Migrations** — `workout_plans`, `workout_sessions`, `workout_exercises` tables (#72)
   - [ ] **AI Assistant & Cloud LLM Service Layer** — Multi-provider support (Gemini, OpenAI, Claude, heuristic fallback) (#73)
-  - [ ] **AI Workout Plan Generator** — Tailored multi-day splits based on goals, schedule, equipment, experience (#73)
+  - [ ] **AI Workout Plan Generator** — Tailored multi-day splits based on goals, schedule, equipment, experience (tracked in #73)
   - [ ] **AI Daily Coach & Suggestions** — Real-time routine recommendations adapting to fatigue, soreness, and time constraints (#74)
   - [ ] **Detailed Workout & Exercise Logger** — Session tracking with sets, reps, weight, RPE, rest timer, and notes (#75)
-  - [ ] **Workout History & Progressive Overload Analytics** — Volume load tracking, PR milestones, and AI recovery/progression insights (#75)
+  - [ ] **Workout History & Progressive Overload Analytics** — Volume load tracking, PR milestones, and AI recovery/progression insights (tracked in #75)
   - [ ] **Frontend Workouts View & Active Logger UI** — Dedicated `/workouts` page, interactive logger, sidebar navigation, and daily dashboard sync (#76)
 - [ ] **Video Management Module** (#26) —
-  - [ ] **Video Upload & Supabase Storage Integration** — Direct/resumable upload to Supabase video bucket (#26)
-  - [ ] **Collections & Metadata Extraction** — Duration, resolution, codec, and thumbnail/preview clip generation (#26)
-  - [ ] **Streaming Video Player UI** — Smooth in-browser playback with collections and tag filtering (#26)
+  - [ ] **Video Upload & Supabase Storage Integration** — Direct/resumable upload to Supabase video bucket (tracked in #26)
+  - [ ] **Collections & Metadata Extraction** — Duration, resolution, codec, and thumbnail/preview clip generation (tracked in #26)
+  - [ ] **Streaming Video Player UI** — Smooth in-browser playback with collections and tag filtering (tracked in #26)
 
 ---
 

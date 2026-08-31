@@ -1,4 +1,5 @@
 import os
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,21 +9,26 @@ class Settings(BaseSettings):
     redis_url: str = ""
     storage_path: str = "./mynest-storage"
 
-    # Supabase Settings (supports both Publishable/Secret and Anon/Service Role keys)
+    # Supabase Settings
     supabase_url: str = ""
     supabase_publishable_key: str = ""
     supabase_secret_key: str = ""
-    supabase_anon_key: str = ""
     supabase_jwt_secret: str = ""
+
+    # Deprecated aliases — use SUPABASE_PUBLISHABLE_KEY / SUPABASE_SECRET_KEY instead.
+    # Kept for backward compatibility with older .env files that use the legacy
+    # Supabase "anon key" / "service role key" naming.
+    supabase_anon_key: str = ""
     supabase_service_role_key: str = ""
 
-    @property
-    def public_key(self) -> str:
-        return self.supabase_publishable_key or self.supabase_anon_key
-
-    @property
-    def private_key(self) -> str:
-        return self.supabase_secret_key or self.supabase_service_role_key
+    @model_validator(mode="after")
+    def _normalize_legacy_keys(self) -> "Settings":
+        """Fold legacy anon/service-role keys into the canonical fields."""
+        if not self.supabase_publishable_key and self.supabase_anon_key:
+            self.supabase_publishable_key = self.supabase_anon_key
+        if not self.supabase_secret_key and self.supabase_service_role_key:
+            self.supabase_secret_key = self.supabase_service_role_key
+        return self
 
     model_config = SettingsConfigDict(
         env_file=("../.env", ".env"),
