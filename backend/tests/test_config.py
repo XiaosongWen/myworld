@@ -20,7 +20,7 @@ class TestSettingsDefaults:
     def test_redis_url_default(self, monkeypatch):
         monkeypatch.delenv("REDIS_URL", raising=False)
         s = Settings(_env_file=None, _yaml_file="configs/dev.yaml")
-        assert s.redis_url == "redis://localhost:6379"
+        assert s.redis_url == ""
 
     def test_storage_path_default(self, monkeypatch):
         monkeypatch.delenv("STORAGE_PATH", raising=False)
@@ -42,6 +42,13 @@ class TestSettingsEnvOverride:
         s = Settings(_env_file=None)
         assert s.redis_url == "redis://remote:6380"
 
+    def test_supabase_keys_override(self, monkeypatch):
+        monkeypatch.setenv("SUPABASE_PUBLISHABLE_KEY", "sb_pub_test")
+        monkeypatch.setenv("SUPABASE_SECRET_KEY", "sb_sec_test")
+        s = Settings(_env_file=None)
+        assert s.public_key == "sb_pub_test"
+        assert s.private_key == "sb_sec_test"
+
     def test_storage_path_override(self, monkeypatch):
         monkeypatch.setenv("STORAGE_PATH", "/data/storage")
         s = Settings(_env_file=None)
@@ -55,5 +62,5 @@ class TestSettingsEnvOverride:
         monkeypatch.setenv("DATABASE_URL", "postgresql+asyncpg://override/db")
         s = Settings(_env_file=None, _yaml_file="configs/dev.yaml")
         assert s.database_url == "postgresql+asyncpg://override/db"
-        assert s.redis_url == "redis://localhost:6379"
+        assert s.redis_url == ""
         assert s.storage_path == "./mynest-storage"
